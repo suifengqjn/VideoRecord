@@ -96,4 +96,8 @@
 }
 
 
+- (void)imagePickerController:(UIImagePickerController *)picker didFinishPickingImage:(UIImage *)image editingInfo:(nullable NSDictionary<NSString *,id> *)editingInfo {
+    NSLog(@"---%@", editingInfo);
+}
+
 @end

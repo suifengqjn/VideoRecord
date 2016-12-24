@@ -260,6 +260,7 @@
 				TargetAttributes = {
 					63F381C31ACAC6A8001ECC7E = {
 						CreatedOnToolsVersion = 6.2;
+						DevelopmentTeam = VN226642G5;
 					};
 					63F381DF1ACAC6A8001ECC7E = {
 						CreatedOnToolsVersion = 6.2;
@@ -443,6 +444,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				DEVELOPMENT_TEAM = VN226642G5;
 				INFOPLIST_FILE = VideoCaptureDemo/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
@@ -454,6 +456,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				DEVELOPMENT_TEAM = VN226642G5;
 				INFOPLIST_FILE = VideoCaptureDemo/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
