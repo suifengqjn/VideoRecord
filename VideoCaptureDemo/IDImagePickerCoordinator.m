@@ -33,6 +33,26 @@
     return _camera;
 }
 
+
+
+
+#pragma mark 自定义方法
+
+- (void)startRecorder
+{
+    [_camera startVideoCapture];
+}
+
+
+- (void)stopRecoder
+{
+    [_camera stopVideoCapture];
+}
+
+
+
+
+
 #pragma mark - Private methods
 
 - (UIImagePickerController *)setupImagePicker
@@ -43,6 +63,7 @@
         camera.sourceType = UIImagePickerControllerSourceTypeCamera;
         camera.mediaTypes = @[(NSString *)kUTTypeMovie];
         camera.delegate = self;
+        _camera = camera;
     }
     return camera;
 }
@@ -71,6 +92,7 @@
 - (void)configureCustomUIOnImagePicker:(UIImagePickerController *)picker
 {
     UIView *cameraOverlay = [[UIView alloc] init];
+    cameraOverlay.backgroundColor = [UIColor redColor];
     picker.showsCameraControls = NO;
     picker.cameraOverlayView = cameraOverlay;
 }
