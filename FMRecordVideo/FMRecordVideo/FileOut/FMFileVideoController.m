@@ -23,7 +23,7 @@
     [super viewDidLoad];
     
     self.view.backgroundColor = [UIColor grayColor];
-    FMFVideoView *videoView = [[FMFVideoView alloc] initWithFMFVideoViewType:Type1X1];
+    FMFVideoView *videoView = [[FMFVideoView alloc] initWithFMFVideoViewType:TypeFullScreen];
     __weak __typeof(self)weakSelf = self;
     [self.view addSubview:videoView];
     videoView.dismissblock = ^(){

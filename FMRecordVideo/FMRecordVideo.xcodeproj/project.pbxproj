@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		1D5238951E76E50F001487AD /* FMVideoPlayController.m in Sources */ = {isa = PBXBuildFile; fileRef = 1D5238941E76E50F001487AD /* FMVideoPlayController.m */; };
 		1DB91FE41E63C85D00DF1264 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 1DB91FE31E63C85D00DF1264 /* main.m */; };
 		1DB91FE71E63C85D00DF1264 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 1DB91FE61E63C85D00DF1264 /* AppDelegate.m */; };
 		1DB91FEA1E63C85D00DF1264 /* ViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 1DB91FE91E63C85D00DF1264 /* ViewController.m */; };
@@ -23,6 +24,8 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		1D5238931E76E50F001487AD /* FMVideoPlayController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FMVideoPlayController.h; sourceTree = "<group>"; };
+		1D5238941E76E50F001487AD /* FMVideoPlayController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = FMVideoPlayController.m; sourceTree = "<group>"; };
 		1DB91FDF1E63C85D00DF1264 /* FMRecordVideo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FMRecordVideo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		1DB91FE31E63C85D00DF1264 /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
 		1DB91FE51E63C85D00DF1264 /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
@@ -84,6 +87,8 @@
 				1DB91FE61E63C85D00DF1264 /* AppDelegate.m */,
 				1DB91FE81E63C85D00DF1264 /* ViewController.h */,
 				1DB91FE91E63C85D00DF1264 /* ViewController.m */,
+				1D5238931E76E50F001487AD /* FMVideoPlayController.h */,
+				1D5238941E76E50F001487AD /* FMVideoPlayController.m */,
 				1DD65F471E7586CC000971A0 /* Tool */,
 				1DB91FF91E63C8F300DF1264 /* UIImagePicker */,
 				1DB91FFA1E63C8FC00DF1264 /* FileOut */,
@@ -221,6 +226,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				1DD65F611E759683000971A0 /* FMFileVideoController.m in Sources */,
+				1D5238951E76E50F001487AD /* FMVideoPlayController.m in Sources */,
 				1DD65F4D1E75873A000971A0 /* XCFileManager.m in Sources */,
 				1DD65F5E1E7592D0000971A0 /* FMFModel.m in Sources */,
 				1DD65F551E758D33000971A0 /* FMRecordProgressView.m in Sources */,

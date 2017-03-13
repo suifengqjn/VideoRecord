@@ -10,6 +10,7 @@
 //  简书:http://www.jianshu.com/u/527ecf8c8753
 #import "FMFModel.h"
 #import <AVFoundation/AVFoundation.h>
+#import <AssetsLibrary/AssetsLibrary.h>
 #import "XCFileManager.h"
 
 #define TIMER_INTERVAL 0.05         //计时器刷新频率
@@ -22,14 +23,18 @@
 @property (nonatomic, weak) UIView *superView;
 
 @property (nonatomic, strong) AVCaptureSession *session;
-@property (nonatomic, strong) dispatch_queue_t videoQueue;
 @property (nonatomic, strong) AVCaptureVideoPreviewLayer *previewlayer;
 @property (nonatomic, strong) AVCaptureDeviceInput *videoInput;
 @property (nonatomic, strong) AVCaptureDeviceInput *audioInput;
 @property (nonatomic, strong) AVCaptureMovieFileOutput *FileOutput;
 
+@property (nonatomic, strong) NSURL *videoUrl;
+
 @property (nonatomic, strong) NSTimer *timer;
 @property (nonatomic, assign) CGFloat recordTime;
+
+
+@property (nonatomic, assign) FMFlashState flashState;
 
 @end
 
@@ -67,13 +72,13 @@
     return _previewlayer;
 }
 
-- (dispatch_queue_t)videoQueue
-{
-    if (!_videoQueue) {
-        _videoQueue = dispatch_queue_create("com.5miles", DISPATCH_QUEUE_SERIAL);
-    }
-    return _videoQueue;
-}
+//- (dispatch_queue_t)videoQueue
+//{
+//    if (!_videoQueue) {
+//        _videoQueue = dispatch_queue_create("com.5miles", DISPATCH_QUEUE_SERIAL);
+//    }
+//    return _videoQueue;
+//}
 
 #pragma mark - view
 - (void)setUpWithType:(FMFVideoViewType )type
@@ -174,22 +179,74 @@
 - (void)writeDataTofile
 {
     NSString *videoPath = [self createVideoFilePath];
-    NSURL *url = [NSURL fileURLWithPath:videoPath];
-    [self.FileOutput startRecordingToOutputFileURL:url recordingDelegate:self];
+    self.videoUrl = [NSURL fileURLWithPath:videoPath];
+    [self.FileOutput startRecordingToOutputFileURL:self.videoUrl recordingDelegate:self];
     
 }
 
 #pragma mark - public method
+//切换摄像头
 - (void)turnCameraAction
 {
+    [self.session stopRunning];
+    // 1. 获取摄像头
+    AVCaptureDevicePosition position = self.videoInput.device.position;
+    
+    //2. 获取当前需要展示的摄像头
+    if (position == AVCaptureDevicePositionBack) {
+        position = AVCaptureDevicePositionFront;
+    } else {
+        position = AVCaptureDevicePositionBack;
+    }
+    
+    // 3. 根据当前摄像头创建新的device
+    AVCaptureDevice *device = [self getCameraDeviceWithPosition:position];
+    
+    // 4. 根据新的device创建input
+    AVCaptureDeviceInput *newInput = [AVCaptureDeviceInput deviceInputWithDevice:device error:nil];
+    
+    //5. 在session中切换input
+    [self.session beginConfiguration];
+    [self.session removeInput:self.videoInput];
+    [self.session addInput:newInput];
+    [self.session commitConfiguration];
+    self.videoInput = newInput;
+    
+    [self.session startRunning];
     
 }
 
 
-- (void)flashAction
+- (void)switchflash
 {
-    
+    if(_flashState == FMFlashClose){
+        if ([self.videoInput.device hasTorch]) {
+            [self.videoInput.device lockForConfiguration:nil];
+            [self.videoInput.device setTorchMode:AVCaptureTorchModeOn];  // use AVCaptureTorchModeOff to turn off
+            [self.videoInput.device unlockForConfiguration];
+            _flashState = FMFlashOpen;
+        }
+    }else if(_flashState == FMFlashOpen){
+        if ([self.videoInput.device hasTorch]) {
+            [self.videoInput.device lockForConfiguration:nil];
+            [self.videoInput.device setTorchMode:AVCaptureTorchModeAuto];
+            [self.videoInput.device unlockForConfiguration];
+            _flashState = FMFlashAuto;
+        }
+    }else if(_flashState == FMFlashAuto){
+        if ([self.videoInput.device hasTorch]) {
+            [self.videoInput.device lockForConfiguration:nil];
+            [self.videoInput.device setTorchMode:AVCaptureTorchModeOff];
+            [self.videoInput.device unlockForConfiguration];
+            _flashState = FMFlashClose;
+        }
+    };
+    if (self.delegate && [self.delegate respondsToSelector:@selector(updateFlashState:)]) {
+        [self.delegate updateFlashState:_flashState];
+    }
+
 }
+
 
 - (void)startRecord
 {
@@ -228,6 +285,11 @@
     
 }
 
+- (void)refreshTimeLabel
+{
+    
+}
+
 #pragma mark - 获取摄像头
 -(AVCaptureDevice *)getCameraDeviceWithPosition:(AVCaptureDevicePosition )position{
     NSArray *cameras= [AVCaptureDevice devicesWithMediaType:AVMediaTypeVideo];
@@ -244,13 +306,19 @@
 - (void)captureOutput:(AVCaptureFileOutput *)captureOutput didStartRecordingToOutputFileAtURL:(NSURL *)fileURL
       fromConnections:(NSArray *)connections
 {
-    
+    self.timer = [NSTimer scheduledTimerWithTimeInterval:TIMER_INTERVAL target:self selector:@selector(refreshTimeLabel) userInfo:nil repeats:YES];
 }
 
 - (void)captureOutput:(AVCaptureFileOutput *)captureOutput didFinishRecordingToOutputFileAtURL:(NSURL *)outputFileURL fromConnections:(NSArray *)connections error:(NSError *)error
 {
-    
+    ALAssetsLibrary *library = [[ALAssetsLibrary alloc] init];
+    //if ([XCFileManager isEmptyItemAtPath:[self.videoUrl description]]) {
+        [library writeVideoAtPathToSavedPhotosAlbum:self.videoUrl completionBlock:nil];
+   // }
 }
+
+
+
 
 
 @end

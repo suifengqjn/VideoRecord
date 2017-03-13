@@ -11,7 +11,7 @@
 #import "FMFVideoView.h"
 #import "FMRecordProgressView.h"
 #import "FMFModel.h"
-@interface FMFVideoView ()
+@interface FMFVideoView ()<FMFModelDelegate>
 
 @property (nonatomic, strong) UIView *topView;
 @property (nonatomic, strong) UIButton *cancelBtn;
@@ -43,6 +43,7 @@
 {
     
     self.fmodel = [[FMFModel alloc] initWithFMFVideoViewType:type superView:self];
+    self.fmodel.delegate = self;
     
     self.topView = [[UIView alloc] init];
     self.topView.backgroundColor = [UIColor colorWithRGB:0x000000 alpha:0.5];
@@ -121,13 +122,13 @@
 
 - (void)turnCameraAction
 {
-    
+     [self.fmodel turnCameraAction];
 }
 
 
 - (void)flashAction
 {
-    
+    [self.fmodel switchflash];
 }
 
 - (void)startRecord
@@ -139,4 +140,21 @@
         [weakSelf dismissVC];
     });
 }
+
+
+#pragma mark - 
+
+- (void)updateFlashState:(FMFlashState)state
+{
+    if (state == FMFlashOpen) {
+        [self.flashBtn setImage:[UIImage imageNamed:@"listing_flash_on"] forState:UIControlStateNormal];
+    }
+    if (state == FMFlashClose) {
+        [self.flashBtn setImage:[UIImage imageNamed:@"listing_flash_off"] forState:UIControlStateNormal];
+    }
+    if (state == FMFlashAuto) {
+        [self.flashBtn setImage:[UIImage imageNamed:@"listing_flash_auto"] forState:UIControlStateNormal];
+    }
+}
+
 @end
