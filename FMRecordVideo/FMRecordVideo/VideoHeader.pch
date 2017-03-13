@@ -1,0 +1,23 @@
+//
+//  VideoHeader.pch
+//  FMRecordVideo
+//
+//  Created by qianjn on 2017/3/12.
+//  Copyright © 2017年 SF. All rights reserved.
+//
+
+#ifndef VideoHeader_pch
+#define VideoHeader_pch
+
+#import "UIColor+Hex.h"
+
+
+#define kScreenWidth [UIScreen mainScreen].bounds.size.width
+#define kScreenHeight [UIScreen mainScreen].bounds.size.height
+
+
+
+
+
+
+#endif /* VideoHeader_pch */
