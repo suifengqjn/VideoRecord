@@ -33,7 +33,8 @@
 - (IBAction)fileOut:(id)sender {
     
     FMFileVideoController *fileVC = [[FMFileVideoController alloc] init];
-    [self presentViewController:fileVC animated:YES completion:nil];
+    UINavigationController *NAV = [[UINavigationController alloc] initWithRootViewController:fileVC];
+    [self presentViewController:NAV animated:YES completion:nil];
     
     
 }

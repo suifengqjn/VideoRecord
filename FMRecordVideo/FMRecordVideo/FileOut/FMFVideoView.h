@@ -11,11 +11,22 @@
 #import <UIKit/UIKit.h>
 #import "FMFModel.h"
 
-typedef void(^dismissBlock)(void);
+
+@protocol FMFVideoViewDelegate <NSObject>
+
+-(void)dismissVC;
+-(void)recordFinishWithvideoUrl:(NSURL *)videoUrl;
+
+@end
+
 
 @interface FMFVideoView : UIView
 
 @property (nonatomic, assign) FMFVideoViewType viewType;
+@property (nonatomic, strong, readonly) FMFModel *fmodel;
+@property (nonatomic, weak) id <FMFVideoViewDelegate> delegate;
+
+
 - (instancetype)initWithFMFVideoViewType:(FMFVideoViewType)type;
-@property (nonatomic, copy) dismissBlock dismissblock;
+- (void)reset;
 @end

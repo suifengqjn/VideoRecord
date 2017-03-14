@@ -14,7 +14,6 @@
 #import "XCFileManager.h"
 
 #define TIMER_INTERVAL 0.05         //计时器刷新频率
-#define MAX_RECORD_TIME 5           //最长录制时间
 #define VIDEO_FOLDER @"videoFolder" //视频录制存放文件夹
 
 
@@ -28,7 +27,7 @@
 @property (nonatomic, strong) AVCaptureDeviceInput *audioInput;
 @property (nonatomic, strong) AVCaptureMovieFileOutput *FileOutput;
 
-@property (nonatomic, strong) NSURL *videoUrl;
+@property (nonatomic, strong, readwrite) NSURL *videoUrl;
 
 @property (nonatomic, strong) NSTimer *timer;
 @property (nonatomic, assign) CGFloat recordTime;
@@ -72,6 +71,16 @@
     return _previewlayer;
 }
 
+- (void)setRecordState:(FMRecordState)recordState
+{
+    if (_recordState != recordState) {
+        _recordState = recordState;
+        if (self.delegate && [self.delegate respondsToSelector:@selector(updateRecordState:)]) {
+            [self.delegate updateRecordState:_recordState];
+        }
+    }
+}
+
 //- (dispatch_queue_t)videoQueue
 //{
 //    if (!_videoQueue) {
@@ -80,10 +89,10 @@
 //    return _videoQueue;
 //}
 
-#pragma mark - view
+#pragma mark - setup
 - (void)setUpWithType:(FMFVideoViewType )type
 {
-    [self clearFile];
+    [self setUpInit];
     
     ///0. 初始化捕捉会话，数据的采集都在会话中处理
     
@@ -93,7 +102,6 @@
     ///2. 设置音频的输入输出
     [self setUpAudio];
     
-    
     ///3.添加写入文件的fileoutput
     [self setUpFileOut];
     
@@ -102,7 +110,6 @@
     
     ///5. 开始采集画面
     [self.session startRunning];
-    
     
     /// 6. 将采集的数据写入文件（用户点击按钮即可将采集到的数据写入文件）
     
@@ -189,7 +196,7 @@
 - (void)turnCameraAction
 {
     [self.session stopRunning];
-    // 1. 获取摄像头
+    // 1. 获取当前摄像头
     AVCaptureDevicePosition position = self.videoInput.device.position;
     
     //2. 获取当前需要展示的摄像头
@@ -257,9 +264,24 @@
 {
     [self.FileOutput stopRecording];
     [self.session stopRunning];
+    [self.timer invalidate];
+    self.timer = nil;
 }
 
+- (void)reset
+{
+    self.recordState = FMRecordStateInit;
+    _recordTime = 0;
+    [self.session startRunning];
+}
 #pragma mark - private method
+//初始化设置
+- (void)setUpInit
+{
+    [self clearFile];
+    _recordTime = 0;
+    _recordState = FMRecordStateInit;
+}
 //存放视频的文件夹
 - (NSString *)videoFolder
 {
@@ -287,7 +309,13 @@
 
 - (void)refreshTimeLabel
 {
-    
+    _recordTime += TIMER_INTERVAL;
+    if(self.delegate && [self.delegate respondsToSelector:@selector(updateRecordingProgress:)]) {
+        [self.delegate updateRecordingProgress:_recordTime/MAX_RECORD_TIME];
+    }
+    if (_recordTime >= MAX_RECORD_TIME) {
+        [self stopRecord];
+    }
 }
 
 #pragma mark - 获取摄像头
@@ -306,19 +334,24 @@
 - (void)captureOutput:(AVCaptureFileOutput *)captureOutput didStartRecordingToOutputFileAtURL:(NSURL *)fileURL
       fromConnections:(NSArray *)connections
 {
+    self.recordState = FMRecordStateRecording;
     self.timer = [NSTimer scheduledTimerWithTimeInterval:TIMER_INTERVAL target:self selector:@selector(refreshTimeLabel) userInfo:nil repeats:YES];
 }
 
 - (void)captureOutput:(AVCaptureFileOutput *)captureOutput didFinishRecordingToOutputFileAtURL:(NSURL *)outputFileURL fromConnections:(NSArray *)connections error:(NSError *)error
 {
     ALAssetsLibrary *library = [[ALAssetsLibrary alloc] init];
-    //if ([XCFileManager isEmptyItemAtPath:[self.videoUrl description]]) {
+    if ([XCFileManager isExistsAtPath:[self.videoUrl path]]) {
         [library writeVideoAtPathToSavedPhotosAlbum:self.videoUrl completionBlock:nil];
-   // }
+    }
+    self.recordState = FMRecordStateFinish;
 }
 
 
-
+- (void)dealloc
+{
+    [self.timer invalidate];
+}
 
 
 @end

@@ -25,6 +25,7 @@
 - (void)viewDidLoad {
     [super viewDidLoad];
     
+    self.view.backgroundColor = [UIColor whiteColor];
     self.videoPlayer = [[MPMoviePlayerController alloc] init];
     [self.videoPlayer.view setFrame:self.view.bounds];
     self.videoPlayer.view.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
@@ -39,7 +40,7 @@
     self.videoPlayer.contentURL = self.videoUrl;
     [self.videoPlayer play];
     
-    
+    [self buildNavUI];
     _enterTime = [[NSDate date] timeIntervalSince1970];
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(captureFinished:) name:MPMoviePlayerThumbnailImageRequestDidFinishNotification object:nil];
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(stateChanged) name:MPMoviePlayerPlaybackStateDidChangeNotification object:nil];
@@ -49,8 +50,21 @@
                                              selector:@selector(videoFinished:) name:MPMoviePlayerPlaybackDidFinishNotification object:self.videoPlayer];
 }
 
-- (BOOL)gestureRecognizerShouldBegin:(UIGestureRecognizer *)gestureRecognizer {
-    return NO;
+- (void)buildNavUI
+{
+    UIImageView *imageView = [[UIImageView alloc] init];
+    imageView.image = [UIImage imageNamed:@"video_play_nav_bg"];
+    imageView.frame = CGRectMake(0, 0, kScreenWidth, 44);
+    imageView.userInteractionEnabled = YES;
+    
+    UIButton *cancelBtn = [UIButton buttonWithType:UIButtonTypeCustom];
+    [cancelBtn addTarget:self action:@selector(dismissAction) forControlEvents:UIControlEventTouchUpInside];
+    [cancelBtn setImage:[UIImage imageNamed:@"cancel"] forState:UIControlStateNormal];
+    cancelBtn.frame = CGRectMake(0, 0, 44, 44);
+    [imageView addSubview:cancelBtn];
+    
+    self.navigationController.navigationBar.hidden = YES;
+    [self.view addSubview:imageView];
 }
 
 - (void)viewWillAppear:(BOOL)animated
@@ -62,7 +76,8 @@
 
 - (void)commit
 {
-    }
+    
+}
 
 #pragma mark - notification
 #pragma state
@@ -98,7 +113,8 @@
 {
     [self.videoPlayer stop];
     self.videoPlayer = nil;
-    [self.navigationController dismissViewControllerAnimated:YES completion:nil];
+    [self.navigationController popViewControllerAnimated:YES];
+    //[self.navigationController dismissViewControllerAnimated:YES completion:nil];
 
 }
 
@@ -147,6 +163,9 @@
     return thumbnailImage;
 }
 
-
+-(void)dealloc
+{
+    [[NSNotificationCenter defaultCenter] removeObserver:self];
+}
 
 @end

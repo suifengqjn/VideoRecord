@@ -10,6 +10,8 @@
 //  简书:http://www.jianshu.com/u/527ecf8c8753
 #import <Foundation/Foundation.h>
 
+#define MAX_RECORD_TIME 5.0           //最长录制时间
+
 //录制视频的长宽比
 typedef NS_ENUM(NSInteger, FMFVideoViewType) {
     Type1X1 = 0,
@@ -24,20 +26,33 @@ typedef NS_ENUM(NSInteger, FMFlashState) {
     FMFlashAuto,
 };
 
+//录制状态
+typedef NS_ENUM(NSInteger, FMRecordState) {
+    FMRecordStateInit = 0,
+    FMRecordStateRecording,
+    FMRecordStatePause,
+    FMRecordStateFinish,
+};
+
 @protocol FMFModelDelegate <NSObject>
 
 - (void)updateFlashState:(FMFlashState)state;
+- (void)updateRecordingProgress:(CGFloat)progress;
+- (void)updateRecordState:(FMRecordState)recordState;
 
 @end
 
 @interface FMFModel : NSObject
 
 @property (nonatomic, weak  ) id<FMFModelDelegate>delegate;
-
+@property (nonatomic, assign) FMRecordState recordState;
+@property (nonatomic, strong, readonly) NSURL *videoUrl;
 - (instancetype)initWithFMFVideoViewType:(FMFVideoViewType )type superView:(UIView *)superView;
 
 - (void)turnCameraAction;
 - (void)switchflash;
 - (void)startRecord;
 - (void)stopRecord;
+- (void)reset;
+
 @end

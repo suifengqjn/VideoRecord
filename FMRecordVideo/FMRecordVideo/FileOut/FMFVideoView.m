@@ -23,7 +23,7 @@
 @property (nonatomic, strong) UIButton *recordBtn;
 @property (nonatomic, assign) CGFloat recordTime;
 
-@property (nonatomic, strong) FMFModel *fmodel;
+@property (nonatomic, strong, readwrite) FMFModel *fmodel;
 
 @end
 
@@ -39,6 +39,7 @@
     return self;
 }
 
+#pragma mark - view
 - (void)BuildUIWithType:(FMFVideoViewType)type
 {
     
@@ -110,13 +111,49 @@
     [self.progressView resetProgress];
 }
 
+- (void)updateViewWithRecording
+{
+    self.timeView.hidden = NO;
+    self.topView.hidden = YES;
+    [self changeToRecordStyle];
+}
 
+- (void)updateViewWithStop
+{
+    self.timeView.hidden = YES;
+    self.topView.hidden = NO;
+    [self changeToStopStyle];
+}
+
+- (void)changeToRecordStyle
+{
+    [UIView animateWithDuration:0.2 animations:^{
+        CGPoint center = self.recordBtn.center;
+        CGRect rect = self.recordBtn.frame;
+        rect.size = CGSizeMake(28, 28);
+        self.recordBtn.frame = rect;
+        self.recordBtn.layer.cornerRadius = 4;
+        self.recordBtn.center = center;
+    }];
+}
+
+- (void)changeToStopStyle
+{
+    [UIView animateWithDuration:0.2 animations:^{
+        CGPoint center = self.recordBtn.center;
+        CGRect rect = self.recordBtn.frame;
+        rect.size = CGSizeMake(52, 52);
+        self.recordBtn.frame = rect;
+        self.recordBtn.layer.cornerRadius = 26;
+        self.recordBtn.center = center;
+    }];
+}
 #pragma mark - action
 
 - (void)dismissVC
 {
-    if (self.dismissblock) {
-        self.dismissblock();
+    if (self.delegate && [self.delegate respondsToSelector:@selector(dismissVC)]) {
+        [self.delegate dismissVC];
     }
 }
 
@@ -133,16 +170,24 @@
 
 - (void)startRecord
 {
-    [self.fmodel startRecord];
-    __weak __typeof(self)weakSelf = self;
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-        [weakSelf.fmodel stopRecord];
-        [weakSelf dismissVC];
-    });
+    if (self.fmodel.recordState == FMRecordStateInit) {
+        [self.fmodel startRecord];
+    } else if (self.fmodel.recordState == FMRecordStateRecording) {
+        [self.fmodel stopRecord];
+    } else if (self.fmodel.recordState == FMRecordStatePause) {
+        
+    }
+    
 }
 
+- (void)reset
+{
 
-#pragma mark - 
+    [self.fmodel reset];
+
+}
+
+#pragma mark - FMFModelDelegate
 
 - (void)updateFlashState:(FMFlashState)state
 {
@@ -157,4 +202,35 @@
     }
 }
 
+
+- (void)updateRecordState:(FMRecordState)recordState
+{
+    if (recordState == FMRecordStateInit) {
+        [self updateViewWithStop];
+        [self.progressView resetProgress];
+    } else if (recordState == FMRecordStateRecording) {
+        [self updateViewWithRecording];
+    } else if (recordState == FMRecordStatePause) {
+         [self updateViewWithStop];
+    } else  if (recordState == FMRecordStateFinish) {
+        [self updateViewWithStop];
+        if (self.delegate && [self.delegate respondsToSelector:@selector(recordFinishWithvideoUrl:)]) {
+            [self.delegate recordFinishWithvideoUrl:self.fmodel.videoUrl];
+        }
+    }
+}
+
+- (void)updateRecordingProgress:(CGFloat)progress
+{
+    [self.progressView updateProgressWithValue:progress];
+    self.timelabel.text = [self changeToVideotime:progress * MAX_RECORD_TIME];
+    [self.timelabel sizeToFit];
+    NSLog(@"-----%f", progress);
+}
+
+- (NSString *)changeToVideotime:(CGFloat)videocurrent {
+    
+    return [NSString stringWithFormat:@"%02li:%02li",lround(floor(videocurrent/60.f)),lround(floor(videocurrent/1.f))%60];
+    
+}
 @end
