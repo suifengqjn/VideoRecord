@@ -162,7 +162,6 @@
      [self.fmodel turnCameraAction];
 }
 
-
 - (void)flashAction
 {
     [self.fmodel switchflash];
@@ -182,9 +181,7 @@
 
 - (void)reset
 {
-
     [self.fmodel reset];
-
 }
 
 #pragma mark - FMFModelDelegate
@@ -225,7 +222,6 @@
     [self.progressView updateProgressWithValue:progress];
     self.timelabel.text = [self changeToVideotime:progress * MAX_RECORD_TIME];
     [self.timelabel sizeToFit];
-    NSLog(@"-----%f", progress);
 }
 
 - (NSString *)changeToVideotime:(CGFloat)videocurrent {

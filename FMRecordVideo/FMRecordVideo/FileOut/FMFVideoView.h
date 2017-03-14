@@ -26,7 +26,7 @@
 @property (nonatomic, strong, readonly) FMFModel *fmodel;
 @property (nonatomic, weak) id <FMFVideoViewDelegate> delegate;
 
-
 - (instancetype)initWithFMFVideoViewType:(FMFVideoViewType)type;
 - (void)reset;
+
 @end

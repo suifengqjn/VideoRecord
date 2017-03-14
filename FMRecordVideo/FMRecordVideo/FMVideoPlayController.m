@@ -22,6 +22,9 @@
 
 @implementation FMVideoPlayController
 
+- (BOOL)prefersStatusBarHidden{
+    return YES;
+}
 - (void)viewDidLoad {
     [super viewDidLoad];
     
@@ -62,6 +65,12 @@
     [cancelBtn setImage:[UIImage imageNamed:@"cancel"] forState:UIControlStateNormal];
     cancelBtn.frame = CGRectMake(0, 0, 44, 44);
     [imageView addSubview:cancelBtn];
+    
+    UIButton *Done = [UIButton buttonWithType:UIButtonTypeCustom];
+    [Done addTarget:self action:@selector(DoneAction) forControlEvents:UIControlEventTouchUpInside];
+    [Done setTitle:@"Done" forState:UIControlStateNormal];
+    Done.frame = CGRectMake(kScreenWidth - 70, 0, 50, 44);
+    [imageView addSubview:Done];
     
     self.navigationController.navigationBar.hidden = YES;
     [self.view addSubview:imageView];
@@ -117,7 +126,10 @@
     //[self.navigationController dismissViewControllerAnimated:YES completion:nil];
 
 }
-
+- (void)DoneAction
+{
+    [self.navigationController dismissViewControllerAnimated:YES completion:nil];
+}
 - (void)viewWillDisappear:(BOOL)animated
 {
     [super viewWillDisappear:animated];
