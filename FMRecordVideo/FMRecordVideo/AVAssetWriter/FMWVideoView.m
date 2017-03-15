@@ -1,17 +1,15 @@
 //
-//  FMFVideoView.m
+//  FMWVideoView.m
 //  FMRecordVideo
 //
-//  Created by qianjn on 2017/3/12.
+//  Created by qianjn on 2017/3/15.
 //  Copyright © 2017年 SF. All rights reserved.
 //
-//  Github:https://github.com/suifengqjn
-//  blog:http://gcblog.github.io/
-//  简书:http://www.jianshu.com/u/527ecf8c8753
-#import "FMFVideoView.h"
+
+#import "FMWVideoView.h"
 #import "FMRecordProgressView.h"
 
-@interface FMFVideoView ()<FMFModelDelegate>
+@interface FMWVideoView ()<FMWModelDelegate>
 
 @property (nonatomic, strong) UIView *topView;
 @property (nonatomic, strong) UIButton *cancelBtn;
@@ -23,15 +21,15 @@
 @property (nonatomic, strong) UIButton *recordBtn;
 @property (nonatomic, assign) CGFloat recordTime;
 
-@property (nonatomic, strong, readwrite) FMFModel *fmodel;
+@property (nonatomic, strong, readwrite) FMWModel *fmodel;
 
 @end
 
-@implementation FMFVideoView
+@implementation FMWVideoView
 
 -(instancetype)initWithFMVideoViewType:(FMVideoViewType)type
 {
-   
+    
     self = [super initWithFrame:[UIScreen mainScreen].bounds];
     if (self) {
         [self BuildUIWithType:type];
@@ -43,7 +41,7 @@
 - (void)BuildUIWithType:(FMVideoViewType)type
 {
     
-    self.fmodel = [[FMFModel alloc] initWithFMVideoViewType:type superView:self];
+    self.fmodel = [[FMWModel alloc] initWithFMVideoViewType:type superView:self];
     self.fmodel.delegate = self;
     
     self.topView = [[UIView alloc] init];
@@ -159,7 +157,7 @@
 
 - (void)turnCameraAction
 {
-     [self.fmodel turnCameraAction];
+    [self.fmodel turnCameraAction];
 }
 
 - (void)flashAction
@@ -208,7 +206,7 @@
     } else if (recordState == FMRecordStateRecording) {
         [self updateViewWithRecording];
     } else if (recordState == FMRecordStatePause) {
-         [self updateViewWithStop];
+        [self updateViewWithStop];
     } else  if (recordState == FMRecordStateFinish) {
         [self updateViewWithStop];
         if (self.delegate && [self.delegate respondsToSelector:@selector(recordFinishWithvideoUrl:)]) {
@@ -229,4 +227,5 @@
     return [NSString stringWithFormat:@"%02li:%02li",lround(floor(videocurrent/60.f)),lround(floor(videocurrent/1.f))%60];
     
 }
+
 @end

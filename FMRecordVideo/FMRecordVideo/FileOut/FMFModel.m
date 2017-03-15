@@ -27,8 +27,9 @@
 @property (nonatomic, strong) AVCaptureDeviceInput *audioInput;
 @property (nonatomic, strong) AVCaptureMovieFileOutput *FileOutput;
 
-@property (nonatomic, strong, readwrite) NSURL *videoUrl;
+@property (strong,nonatomic)  UIImageView *focusCursor; //聚焦光标
 
+@property (nonatomic, strong, readwrite) NSURL *videoUrl;
 @property (nonatomic, strong) NSTimer *timer;
 @property (nonatomic, assign) CGFloat recordTime;
 
@@ -40,7 +41,7 @@
 @implementation FMFModel
 
 
-- (instancetype)initWithFMFVideoViewType:(FMFVideoViewType)type superView:(UIView *)superView
+- (instancetype)initWithFMVideoViewType:(FMVideoViewType)type superView:(UIView *)superView
 {
     self = [super init];
     if (self) {
@@ -84,16 +85,18 @@
     }
 }
 
-//- (dispatch_queue_t)videoQueue
-//{
-//    if (!_videoQueue) {
-//        _videoQueue = dispatch_queue_create("com.5miles", DISPATCH_QUEUE_SERIAL);
-//    }
-//    return _videoQueue;
-//}
+- (UIImageView *)focusCursor
+{
+    if (!_focusCursor) {
+        _focusCursor = [[UIImageView alloc]initWithFrame:CGRectMake(100, 100, 50, 50)];
+        _focusCursor.image = [UIImage imageNamed:@"focusImg"];
+        _focusCursor.alpha = 0;
+    }
+    return _focusCursor;
+}
 
 #pragma mark - setup
-- (void)setUpWithType:(FMFVideoViewType )type
+- (void)setUpWithType:(FMVideoViewType )type
 {
     [self setUpInit];
     
@@ -116,8 +119,8 @@
     
     /// 6. 将采集的数据写入文件（用户点击按钮即可将采集到的数据写入文件）
     
+    /// 7. 增加聚焦功能（可有可无）
     
-
     
 }
 
@@ -167,7 +170,7 @@
     }
 }
 
-- (void)setUpPreviewLayerWithType:(FMFVideoViewType )type
+- (void)setUpPreviewLayerWithType:(FMVideoViewType )type
 {
     CGRect rect = CGRectZero;
     switch (type) {
@@ -197,6 +200,62 @@
     
 }
 
+- (void)addFocus
+{
+    [self.superView addSubview:self.focusCursor];
+    UITapGestureRecognizer *tapGesture= [[UITapGestureRecognizer alloc]initWithTarget:self action:@selector(tapScreen:)];
+    [self.superView addGestureRecognizer:tapGesture];
+}
+
+-(void)tapScreen:(UITapGestureRecognizer *)tapGesture{
+    CGPoint point= [tapGesture locationInView:self.superView];
+    //将UI坐标转化为摄像头坐标
+    CGPoint cameraPoint= [self.previewlayer captureDevicePointOfInterestForPoint:point];
+    [self setFocusCursorWithPoint:point];
+    [self focusWithMode:AVCaptureFocusModeAutoFocus exposureMode:AVCaptureExposureModeAutoExpose atPoint:cameraPoint];
+}
+
+
+-(void)setFocusCursorWithPoint:(CGPoint)point{
+    self.focusCursor.center=point;
+    self.focusCursor.transform=CGAffineTransformMakeScale(1.5, 1.5);
+    self.focusCursor.alpha=1.0;
+    [UIView animateWithDuration:1.0 animations:^{
+        self.focusCursor.transform=CGAffineTransformIdentity;
+    } completion:^(BOOL finished) {
+        self.focusCursor.alpha=0;
+        
+    }];
+}
+//设置聚焦点
+-(void)focusWithMode:(AVCaptureFocusMode)focusMode exposureMode:(AVCaptureExposureMode)exposureMode atPoint:(CGPoint)point{
+    [self changeDeviceProperty:^(AVCaptureDevice *captureDevice) {
+        if ([captureDevice isFocusModeSupported:focusMode]) {
+            [captureDevice setFocusMode:AVCaptureFocusModeAutoFocus];
+        }
+        if ([captureDevice isFocusPointOfInterestSupported]) {
+            [captureDevice setFocusPointOfInterest:point];
+        }
+        if ([captureDevice isExposureModeSupported:exposureMode]) {
+            [captureDevice setExposureMode:AVCaptureExposureModeAutoExpose];
+        }
+        if ([captureDevice isExposurePointOfInterestSupported]) {
+            [captureDevice setExposurePointOfInterest:point];
+        }
+    }];
+}
+
+-(void)changeDeviceProperty:(void(^)(AVCaptureDevice *captureDevice))propertyChange{
+    AVCaptureDevice *captureDevice= [self.videoInput device];
+    NSError *error;
+    //注意改变设备属性前一定要首先调用lockForConfiguration:调用完之后使用unlockForConfiguration方法解锁
+    if ([captureDevice lockForConfiguration:&error]) {
+        propertyChange(captureDevice);
+        [captureDevice unlockForConfiguration];
+    }else{
+        NSLog(@"设置设备属性过程发生错误，错误信息：%@",error.localizedDescription);
+    }
+}
 #pragma mark - public method
 //切换摄像头
 - (void)turnCameraAction
@@ -289,6 +348,7 @@
     [self clearFile];
     _recordTime = 0;
     _recordState = FMRecordStateInit;
+    [self addFocus];
 }
 //存放视频的文件夹
 - (NSString *)videoFolder

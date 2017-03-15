@@ -1,14 +1,13 @@
 //
-//  FMFModel.h
+//  FMWModel.h
 //  FMRecordVideo
 //
-//  Created by qianjn on 2017/3/12.
+//  Created by qianjn on 2017/3/15.
 //  Copyright © 2017年 SF. All rights reserved.
 //
-//  Github:https://github.com/suifengqjn
-//  blog:http://gcblog.github.io/
-//  简书:http://www.jianshu.com/u/527ecf8c8753
+
 #import <Foundation/Foundation.h>
+
 
 #define MAX_RECORD_TIME 5.0           //最长录制时间
 
@@ -34,7 +33,7 @@ typedef NS_ENUM(NSInteger, FMRecordState) {
     FMRecordStateFinish,
 };
 
-@protocol FMFModelDelegate <NSObject>
+@protocol FMWModelDelegate <NSObject>
 
 - (void)updateFlashState:(FMFlashState)state;
 - (void)updateRecordingProgress:(CGFloat)progress;
@@ -42,9 +41,10 @@ typedef NS_ENUM(NSInteger, FMRecordState) {
 
 @end
 
-@interface FMFModel : NSObject
 
-@property (nonatomic, weak  ) id<FMFModelDelegate>delegate;
+@interface FMWModel : NSObject
+
+@property (nonatomic, weak  ) id<FMWModelDelegate>delegate;
 @property (nonatomic, assign) FMRecordState recordState;
 @property (nonatomic, strong, readonly) NSURL *videoUrl;
 - (instancetype)initWithFMVideoViewType:(FMVideoViewType )type superView:(UIView *)superView;
@@ -54,5 +54,6 @@ typedef NS_ENUM(NSInteger, FMRecordState) {
 - (void)startRecord;
 - (void)stopRecord;
 - (void)reset;
+
 
 @end

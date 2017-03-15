@@ -22,11 +22,11 @@
 
 @interface FMFVideoView : UIView
 
-@property (nonatomic, assign) FMFVideoViewType viewType;
+@property (nonatomic, assign) FMVideoViewType viewType;
 @property (nonatomic, strong, readonly) FMFModel *fmodel;
 @property (nonatomic, weak) id <FMFVideoViewDelegate> delegate;
 
-- (instancetype)initWithFMFVideoViewType:(FMFVideoViewType)type;
+- (instancetype)initWithFMVideoViewType:(FMVideoViewType)type;
 - (void)reset;
 
 @end

@@ -11,6 +11,7 @@
 #import "ViewController.h"
 #import "FMImagePicker.h"
 #import "FMFileVideoController.h"
+#import "FMWriteVideoController.h"
 @interface ViewController ()
 
 @end
@@ -41,8 +42,9 @@
 
 - (IBAction)writer:(id)sender {
     
-    
-    
+    FMWriteVideoController *writeVC = [[FMWriteVideoController alloc] init];
+    UINavigationController *NAV = [[UINavigationController alloc] initWithRootViewController:writeVC];
+    [self presentViewController:NAV animated:YES completion:nil];
     
 }
 
