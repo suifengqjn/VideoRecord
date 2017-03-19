@@ -10,12 +10,12 @@
 #import <AVFoundation/AVFoundation.h>
 #import <AssetsLibrary/AssetsLibrary.h>
 #import "XCFileManager.h"
-
+#import "AVAssetWriteManager.h"
 #define TIMER_INTERVAL 0.05         //计时器刷新频率
 #define VIDEO_FOLDER @"videoFolder" //视频录制存放文件夹
 #define IS_IPHONE_4 (fabs((double)[[UIScreen mainScreen]bounds].size.height - (double)480) < DBL_EPSILON)
 
-@interface FMWModel ()<AVCaptureFileOutputRecordingDelegate>
+@interface FMWModel ()<AVCaptureVideoDataOutputSampleBufferDelegate, AVCaptureAudioDataOutputSampleBufferDelegate>
 
 @property (nonatomic, weak) UIView *superView;
 
@@ -24,7 +24,11 @@
 @property (nonatomic, strong) AVCaptureVideoPreviewLayer *previewlayer;
 @property (nonatomic, strong) AVCaptureDeviceInput *videoInput;
 @property (nonatomic, strong) AVCaptureDeviceInput *audioInput;
-@property (nonatomic, strong) AVCaptureMovieFileOutput *FileOutput;
+
+@property (nonatomic, strong) AVCaptureVideoDataOutput *videoOutput;
+@property (nonatomic, strong) AVCaptureAudioDataOutput *audioOutput;
+
+@property (nonatomic, strong)AVAssetWriteManager *writeManager;
 
 @property (nonatomic, strong, readwrite) NSURL *videoUrl;
 
@@ -63,6 +67,13 @@
     return _session;
 }
 
+- (dispatch_queue_t)videoQueue
+{
+    if (!_videoQueue) {
+        _videoQueue = dispatch_queue_create("com.5miles", DISPATCH_QUEUE_SERIAL);
+    }
+    return _videoQueue;
+}
 - (AVCaptureVideoPreviewLayer *)previewlayer
 {
     if (!_previewlayer) {
@@ -82,13 +93,6 @@
     }
 }
 
-- (dispatch_queue_t)videoQueue
-{
-    if (!_videoQueue) {
-        _videoQueue = dispatch_queue_create("com.5miles", DISPATCH_QUEUE_SERIAL);
-    }
-    return _videoQueue;
-}
 
 #pragma mark - setup
 - (void)setUpWithType:(FMVideoViewType )type
@@ -103,17 +107,14 @@
     ///2. 设置音频的输入输出
     [self setUpAudio];
     
-    ///3.添加写入文件的fileoutput
-    [self setUpFileOut];
-    
     ///4. 视频的预览层
     [self setUpPreviewLayerWithType:type];
     
     ///5. 开始采集画面
     [self.session startRunning];
     
-    /// 6. 将采集的数据写入文件（用户点击按钮即可将采集到的数据写入文件）
-    
+    /// 6. 初始化writer， 用writer 把数据写入文件
+    [self setUpWriter];
     
 }
 
@@ -127,8 +128,15 @@
     // 2.5 将视频输入源添加到会话
     if ([self.session canAddInput:self.videoInput]) {
         [self.session addInput:self.videoInput];
-        
     }
+    
+    self.videoOutput = [[AVCaptureVideoDataOutput alloc] init];
+    self.videoOutput.alwaysDiscardsLateVideoFrames = YES; //立即丢弃旧帧，节省内存，默认YES
+    [self.videoOutput setSampleBufferDelegate:self queue:self.videoQueue];
+    if ([self.session canAddOutput:self.videoOutput]) {
+        [self.session addOutput:self.videoOutput];
+    }
+    
 }
 - (void)setUpAudio
 {
@@ -141,26 +149,13 @@
     if ([self.session canAddInput:self.audioInput]) {
         [self.session addInput:self.audioInput];
     }
-}
-
-- (void)setUpFileOut
-{
-    // 3.1初始化设备输出对象，用于获得输出数据
-    self.FileOutput=[[AVCaptureMovieFileOutput alloc]init];
     
-    
-    AVCaptureConnection *captureConnection=[self.FileOutput connectionWithMediaType:AVMediaTypeVideo];
-    //设置防抖
-    if ([captureConnection isVideoStabilizationSupported ]) {
-        captureConnection.preferredVideoStabilizationMode=AVCaptureVideoStabilizationModeAuto;
+    self.audioOutput = [[AVCaptureAudioDataOutput alloc] init];
+    [self.audioOutput setSampleBufferDelegate:self queue:self.videoQueue];
+    if([self.session canAddOutput:self.audioOutput]) {
+        [self.session addOutput:self.audioOutput];
     }
-    //预览图层和视频方向保持一致
-    captureConnection.videoOrientation = [self.previewlayer connection].videoOrientation;
     
-    // 3.2将设备输出添加到会话中
-    if ([_session canAddOutput:_FileOutput]) {
-        [_session addOutput:_FileOutput];
-    }
 }
 
 - (void)setUpPreviewLayerWithType:(FMVideoViewType )type
@@ -185,6 +180,12 @@
     [_superView.layer insertSublayer:self.previewlayer atIndex:0];
 }
 
+- (void)setUpWriter
+{
+    self.videoUrl = [[NSURL alloc] initFileURLWithPath:[self createVideoFilePath]];
+    self.writeManager = [[AVAssetWriteManager alloc] initWithURL:self.videoUrl];
+    
+}
 #pragma mark - public method
 //切换摄像头
 - (void)turnCameraAction
@@ -251,15 +252,20 @@
 
 - (void)startRecord
 {
-    
+    if (self.recordState == FMRecordStateInit) {
+        [self.writeManager startWrite];
+        self.recordState = FMRecordStateRecording;
+    }
 }
 
 - (void)stopRecord
 {
-    [self.FileOutput stopRecording];
-    [self.session stopRunning];
+    
+    
+    [self.writeManager stopWrite];
     [self.timer invalidate];
     self.timer = nil;
+    [self.session stopRunning];
 }
 
 - (void)reset
@@ -328,7 +334,54 @@
 }
 
 
-#pragma mark - AVCaptureFileOutputRecordingDelegate
+#pragma mark - AVCaptureVideoDataOutputSampleBufferDelegate AVCaptureAudioDataOutputSampleBufferDelegate
+
+- (void)captureOutput:(AVCaptureOutput *)captureOutput didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer fromConnection:(AVCaptureConnection *)connection
+{
+    @autoreleasepool {
+        //视频
+        if (connection == [self.videoOutput connectionWithMediaType:AVMediaTypeVideo]) {
+            
+            if (!self.writeManager.outputVideoFormatDescription) {
+                @synchronized(self) {
+                    CMFormatDescriptionRef formatDescription = CMSampleBufferGetFormatDescription(sampleBuffer);
+                    self.writeManager.outputVideoFormatDescription = formatDescription;
+                }
+            } else {
+                @synchronized(self) {
+                    if (self.writeManager.writeState == FMRecordStateRecording) {
+                        [self.writeManager appendSampleBuffer:sampleBuffer ofMediaType:AVMediaTypeVideo];
+                    }
+                    
+                }
+            }
+            
+            
+        }
+        
+        //音频
+        if (connection == [self.audioOutput connectionWithMediaType:AVMediaTypeAudio]) {
+            if (!self.writeManager.outputAudioFormatDescription) {
+                @synchronized(self) {
+                    CMFormatDescriptionRef formatDescription = CMSampleBufferGetFormatDescription(sampleBuffer);
+                    self.writeManager.outputAudioFormatDescription = formatDescription;
+                }
+            }
+            @synchronized(self) {
+                
+                if (self.writeManager.writeState == FMRecordStateRecording) {
+                    [self.writeManager appendSampleBuffer:sampleBuffer ofMediaType:AVMediaTypeAudio];
+                }
+                
+            }
+            
+        }
+    }
+    
+}
+
+
+
 - (void)captureOutput:(AVCaptureFileOutput *)captureOutput didStartRecordingToOutputFileAtURL:(NSURL *)fileURL
       fromConnections:(NSArray *)connections
 {

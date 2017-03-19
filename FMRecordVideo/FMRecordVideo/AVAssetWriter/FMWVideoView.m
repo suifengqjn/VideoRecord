@@ -177,6 +177,12 @@
     
 }
 
+
+- (void)stopRecord
+{
+     [self.fmodel stopRecord];
+}
+
 - (void)reset
 {
     [self.fmodel reset];

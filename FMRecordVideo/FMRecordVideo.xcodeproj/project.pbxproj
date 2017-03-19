@@ -10,6 +10,7 @@
 		1D21A0671E78E0CB00D47F09 /* FMWriteVideoController.m in Sources */ = {isa = PBXBuildFile; fileRef = 1D21A0661E78E0CB00D47F09 /* FMWriteVideoController.m */; };
 		1D21A06A1E78E0E400D47F09 /* FMWModel.m in Sources */ = {isa = PBXBuildFile; fileRef = 1D21A0691E78E0E400D47F09 /* FMWModel.m */; };
 		1D21A06D1E78E0FB00D47F09 /* FMWVideoView.m in Sources */ = {isa = PBXBuildFile; fileRef = 1D21A06C1E78E0FB00D47F09 /* FMWVideoView.m */; };
+		1D21A0701E7938A700D47F09 /* AVAssetWriteManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 1D21A06F1E7938A700D47F09 /* AVAssetWriteManager.m */; };
 		1D5238951E76E50F001487AD /* FMVideoPlayController.m in Sources */ = {isa = PBXBuildFile; fileRef = 1D5238941E76E50F001487AD /* FMVideoPlayController.m */; };
 		1DB91FE41E63C85D00DF1264 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 1DB91FE31E63C85D00DF1264 /* main.m */; };
 		1DB91FE71E63C85D00DF1264 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 1DB91FE61E63C85D00DF1264 /* AppDelegate.m */; };
@@ -33,6 +34,8 @@
 		1D21A0691E78E0E400D47F09 /* FMWModel.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = FMWModel.m; sourceTree = "<group>"; };
 		1D21A06B1E78E0FB00D47F09 /* FMWVideoView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FMWVideoView.h; sourceTree = "<group>"; };
 		1D21A06C1E78E0FB00D47F09 /* FMWVideoView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = FMWVideoView.m; sourceTree = "<group>"; };
+		1D21A06E1E7938A700D47F09 /* AVAssetWriteManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AVAssetWriteManager.h; sourceTree = "<group>"; };
+		1D21A06F1E7938A700D47F09 /* AVAssetWriteManager.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = AVAssetWriteManager.m; sourceTree = "<group>"; };
 		1D5238931E76E50F001487AD /* FMVideoPlayController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FMVideoPlayController.h; sourceTree = "<group>"; };
 		1D5238941E76E50F001487AD /* FMVideoPlayController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = FMVideoPlayController.m; sourceTree = "<group>"; };
 		1DB91FDF1E63C85D00DF1264 /* FMRecordVideo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FMRecordVideo.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -149,6 +152,8 @@
 				1D21A0661E78E0CB00D47F09 /* FMWriteVideoController.m */,
 				1D21A0681E78E0E400D47F09 /* FMWModel.h */,
 				1D21A0691E78E0E400D47F09 /* FMWModel.m */,
+				1D21A06E1E7938A700D47F09 /* AVAssetWriteManager.h */,
+				1D21A06F1E7938A700D47F09 /* AVAssetWriteManager.m */,
 				1D21A06B1E78E0FB00D47F09 /* FMWVideoView.h */,
 				1D21A06C1E78E0FB00D47F09 /* FMWVideoView.m */,
 			);
@@ -244,6 +249,7 @@
 				1DD65F611E759683000971A0 /* FMFileVideoController.m in Sources */,
 				1D5238951E76E50F001487AD /* FMVideoPlayController.m in Sources */,
 				1D21A06D1E78E0FB00D47F09 /* FMWVideoView.m in Sources */,
+				1D21A0701E7938A700D47F09 /* AVAssetWriteManager.m in Sources */,
 				1DD65F4D1E75873A000971A0 /* XCFileManager.m in Sources */,
 				1DD65F5E1E7592D0000971A0 /* FMFModel.m in Sources */,
 				1DD65F551E758D33000971A0 /* FMRecordProgressView.m in Sources */,

@@ -7,8 +7,8 @@
 //
 
 #import "FMWriteVideoController.h"
-
-@interface FMWriteVideoController ()
+#import "FMWVideoView.h"
+@interface FMWriteVideoController ()<FMWVideoViewDelegate>
 
 @end
 
@@ -17,6 +17,15 @@
 - (void)viewDidLoad {
     [super viewDidLoad];
     // Do any additional setup after loading the view.
+    
+    self.navigationController.navigationBar.hidden = YES;
+    
+    FMWVideoView *videoView  =[[FMWVideoView alloc] initWithFMVideoViewType:TypeFullScreen];
+    videoView.delegate = self;
+    [self.view addSubview:videoView];
+    
+    
+    
 }
 
 

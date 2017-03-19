@@ -7,7 +7,7 @@
 //
 
 #import <Foundation/Foundation.h>
-
+#import "AVAssetWriteManager.h"
 
 #define MAX_RECORD_TIME 5.0           //最长录制时间
 
@@ -25,13 +25,7 @@ typedef NS_ENUM(NSInteger, FMFlashState) {
     FMFlashAuto,
 };
 
-//录制状态
-typedef NS_ENUM(NSInteger, FMRecordState) {
-    FMRecordStateInit = 0,
-    FMRecordStateRecording,
-    FMRecordStatePause,
-    FMRecordStateFinish,
-};
+
 
 @protocol FMWModelDelegate <NSObject>
 

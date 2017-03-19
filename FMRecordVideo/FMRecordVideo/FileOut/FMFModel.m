@@ -294,7 +294,7 @@
     if(_flashState == FMFlashClose){
         if ([self.videoInput.device hasTorch]) {
             [self.videoInput.device lockForConfiguration:nil];
-            [self.videoInput.device setTorchMode:AVCaptureTorchModeOn];  // use AVCaptureTorchModeOff to turn off
+            [self.videoInput.device setTorchMode:AVCaptureTorchModeOn];
             [self.videoInput.device unlockForConfiguration];
             _flashState = FMFlashOpen;
         }
