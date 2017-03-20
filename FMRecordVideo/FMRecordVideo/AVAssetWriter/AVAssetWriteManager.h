@@ -9,24 +9,40 @@
 #import <Foundation/Foundation.h>
 #import <AVFoundation/AVFoundation.h>
 
-//录制状态
+
+
+//录制状态，（这里把视频录制与写入合并成一个状态）
 typedef NS_ENUM(NSInteger, FMRecordState) {
     FMRecordStateInit = 0,
-    FMRecordStatePrepareRecording, //录制的前几十帧是无效的，需要丢弃，
+    FMRecordStatePrepareRecording,
     FMRecordStateRecording,
-    FMRecordStatePause,
     FMRecordStateFinish,
     FMRecordStateFail,
 };
+
+//录制视频的长宽比
+typedef NS_ENUM(NSInteger, FMVideoViewType) {
+    Type1X1 = 0,
+    Type4X3,
+    TypeFullScreen
+};
+
+
+@protocol AVAssetWriteManagerDelegate <NSObject>
+
+- (void)finishWriting;
+- (void)updateWritingProgress:(CGFloat)progress;
+
+@end
 
 @interface AVAssetWriteManager : NSObject
 
 @property (nonatomic, retain) __attribute__((NSObject)) CMFormatDescriptionRef outputVideoFormatDescription;
 @property (nonatomic, retain) __attribute__((NSObject)) CMFormatDescriptionRef outputAudioFormatDescription;
 
-@property (nonatomic, assign) CGSize outputSize;
 @property (nonatomic, assign) FMRecordState writeState;
-- (instancetype)initWithURL:(NSURL *)URL;
+@property (nonatomic, weak) id <AVAssetWriteManagerDelegate> delegate;
+- (instancetype)initWithURL:(NSURL *)URL viewType:(FMVideoViewType )type;
 
 - (void)startWrite;
 - (void)stopWrite;

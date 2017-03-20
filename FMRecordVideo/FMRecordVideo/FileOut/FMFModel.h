@@ -10,7 +10,7 @@
 //  简书:http://www.jianshu.com/u/527ecf8c8753
 #import <Foundation/Foundation.h>
 
-#define MAX_RECORD_TIME 5.0           //最长录制时间
+
 
 //录制视频的长宽比
 typedef NS_ENUM(NSInteger, FMVideoViewType) {

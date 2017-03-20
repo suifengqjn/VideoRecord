@@ -220,7 +220,7 @@
 - (void)updateRecordingProgress:(CGFloat)progress
 {
     [self.progressView updateProgressWithValue:progress];
-    self.timelabel.text = [self changeToVideotime:progress * MAX_RECORD_TIME];
+    self.timelabel.text = [self changeToVideotime:progress * RECORD_MAX_TIME];
     [self.timelabel sizeToFit];
 }
 

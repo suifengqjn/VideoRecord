@@ -9,14 +9,6 @@
 #import <Foundation/Foundation.h>
 #import "AVAssetWriteManager.h"
 
-#define MAX_RECORD_TIME 5.0           //最长录制时间
-
-//录制视频的长宽比
-typedef NS_ENUM(NSInteger, FMVideoViewType) {
-    Type1X1 = 0,
-    Type4X3,
-    TypeFullScreen
-};
 
 //闪光灯状态
 typedef NS_ENUM(NSInteger, FMFlashState) {
@@ -24,8 +16,6 @@ typedef NS_ENUM(NSInteger, FMFlashState) {
     FMFlashOpen,
     FMFlashAuto,
 };
-
-
 
 @protocol FMWModelDelegate <NSObject>
 

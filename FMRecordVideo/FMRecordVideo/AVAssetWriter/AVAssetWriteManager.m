@@ -10,13 +10,6 @@
 #import "XCFileManager.h"
 #import <CoreMedia/CoreMedia.h>
 #import <AssetsLibrary/AssetsLibrary.h>
-//typedef NS_ENUM(NSInteger, FMWriteStatus) {
-//    FMWriteStatusInit = 0,
-//    FMWriteStatusStartingRecording,
-//    FMWriteStatusRecording,
-//    FMWriteStatusStoppingRecording,
-//};
-
 
 @interface AVAssetWriteManager ()
 
@@ -37,32 +30,56 @@
 
 
 @property (nonatomic, assign) BOOL canWrite;
+@property (nonatomic, assign) FMVideoViewType viewType;
+@property (nonatomic, assign) CGSize outputSize;
 
-
-
+@property (nonatomic, strong) NSTimer *timer;
+@property (nonatomic, assign) CGFloat recordTime;
 
 @end
 
 @implementation AVAssetWriteManager
 
-
-#pragma mark - lazy
-
-
 #pragma mark - private method
+- (void)setUpInitWithType:(FMVideoViewType )type
+{
+    switch (type) {
+        case Type1X1:
+            _outputSize = CGSizeMake(kScreenWidth, kScreenWidth);
+            break;
+        case Type4X3:
+            _outputSize = CGSizeMake(kScreenWidth, kScreenWidth*4/3);
+            break;
+        case TypeFullScreen:
+            _outputSize = CGSizeMake(kScreenWidth, kScreenHeight);
+            break;
+        default:
+            _outputSize = CGSizeMake(kScreenWidth, kScreenWidth);
+            break;
+    }
+    _writeQueue = dispatch_queue_create("com.5miles", DISPATCH_QUEUE_SERIAL);
+    _recordTime = 0;
+    
+}
 
-- (instancetype)initWithURL:(NSURL *)URL
+- (instancetype)initWithURL:(NSURL *)URL viewType:(FMVideoViewType )type
 {
     self = [super init];
     if (self) {
         _videoUrl = URL;
-        self.outputSize = CGSizeMake(kScreenWidth, kScreenWidth);
-        _writeQueue = dispatch_queue_create("com.5miles", DISPATCH_QUEUE_SERIAL);
+        _viewType = type;
+        [self setUpInitWithType:type];
+        
     }
     return self;
 }
 
-
+//- (void)setWriteState:(FMRecordState)writeState
+//{
+//    if (_writeState != writeState) {
+//        _writeState = writeState;
+//    }
+//}
 
 //开始写入数据
 - (void)appendSampleBuffer:(CMSampleBufferRef)sampleBuffer ofMediaType:(NSString *)mediaType
@@ -79,6 +96,8 @@
         }
     }
     
+    
+    
     CFRetain(sampleBuffer);
     dispatch_async(self.writeQueue, ^{
         @autoreleasepool {
@@ -89,12 +108,21 @@
                 }
             }
             
+            
+            
+            
             if (!self.canWrite && mediaType == AVMediaTypeVideo) {
                 [self.assetWriter startWriting];
                 [self.assetWriter startSessionAtSourceTime:CMSampleBufferGetPresentationTimeStamp(sampleBuffer)];
                 self.canWrite = YES;
             }
-            NSLog(@"------   %@  --  %@", mediaType, sampleBuffer);
+            
+            if (!_timer) {
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    _timer = [NSTimer scheduledTimerWithTimeInterval:TIMER_INTERVAL target:self selector:@selector(updateProgress) userInfo:nil repeats:YES];
+                });
+                
+            }
             //写入视频数据
             if (mediaType == AVMediaTypeVideo) {
                 if (self.assetWriterVideoInput.readyForMoreMediaData) {
@@ -141,11 +169,12 @@
 - (void)stopWrite
 {
     self.writeState = FMRecordStateFinish;
+    [self.timer invalidate];
+    self.timer = nil;
     __weak __typeof(self)weakSelf = self;
     if(_assetWriter && _assetWriter.status == AVAssetWriterStatusWriting){
         dispatch_async(self.writeQueue, ^{
             [_assetWriter finishWritingWithCompletionHandler:^{
-                
                 ALAssetsLibrary *lib = [[ALAssetsLibrary alloc] init];
                 [lib writeVideoAtPathToSavedPhotosAlbum:weakSelf.videoUrl completionBlock:nil];
                 
@@ -154,6 +183,20 @@
     }
 }
 
+- (void)updateProgress
+{
+    if (_recordTime >= RECORD_MAX_TIME) {
+        [self stopWrite];
+        if (self.delegate && [self.delegate respondsToSelector:@selector(finishWriting)]) {
+            [self.delegate finishWriting];
+        }
+        return;
+    }
+    _recordTime += TIMER_INTERVAL;
+    if (self.delegate && [self.delegate respondsToSelector:@selector(updateWritingProgress:)]) {
+        [self.delegate updateWritingProgress:_recordTime/RECORD_MAX_TIME * 1.0];
+    }
+}
 
 #pragma mark - private method
 //设置写入视频属性
@@ -184,9 +227,6 @@
     _assetWriterVideoInput.transform = CGAffineTransformMakeRotation(M_PI / 2.0);
     
     
-    
-    
-    
     // 音频设置
     self.audioCompressionSettings = @{ AVEncoderBitRatePerChannelKey : @(28000),
                                        AVFormatIDKey : @(kAudioFormatMPEG4AAC),
@@ -198,13 +238,15 @@
     _assetWriterAudioInput.expectsMediaDataInRealTime = YES;
     
     
-//    NSDictionary *SPBADictionary = @{
-//                                     (__bridge NSString *)kCVPixelBufferPixelFormatTypeKey : @(kCVPixelFormatType_32BGRA),
-//                                     (__bridge NSString *)kCVPixelBufferWidthKey : @(videoWidth),
-//                                     (__bridge NSString *)kCVPixelBufferHeightKey  : @(videoHeight),
-//                                     (__bridge NSString *)kCVPixelFormatOpenGLESCompatibility : ((__bridge NSNumber *)kCFBooleanTrue)
-//                                     };
-//    _assetWriterPixelBufferInput = [AVAssetWriterInputPixelBufferAdaptor assetWriterInputPixelBufferAdaptorWithAssetWriterInput:_assetWriterVideoInput sourcePixelBufferAttributes:SPBADictionary];
+    NSDictionary *SPBADictionary = @{
+                                     (__bridge NSString *)kCVPixelBufferPixelFormatTypeKey : @(kCVPixelFormatType_32BGRA),
+                                     (__bridge NSString *)kCVPixelBufferWidthKey : @(self.outputSize.width),
+                                     (__bridge NSString *)kCVPixelBufferHeightKey  : @(self.outputSize.height),
+                                     (__bridge NSString *)kCVPixelFormatOpenGLESCompatibility : ((__bridge NSNumber *)kCFBooleanTrue)
+                                     };
+    _assetWriterPixelBufferInput = [AVAssetWriterInputPixelBufferAdaptor assetWriterInputPixelBufferAdaptorWithAssetWriterInput:_assetWriterVideoInput sourcePixelBufferAttributes:SPBADictionary];
+    
+    
     if ([_assetWriter canAddInput:_assetWriterVideoInput]) {
         [_assetWriter addInput:_assetWriterVideoInput];
     }else {
@@ -241,7 +283,19 @@
 
 - (void)destroyWrite
 {
+    self.assetWriter = nil;
+    self.assetWriterAudioInput = nil;
+    self.assetWriterVideoInput = nil;
+    self.videoUrl = nil;
+    self.recordTime = 0;
+    [self.timer invalidate];
+    self.timer = nil;
     
+}
+
+- (void)dealloc
+{
+    [self destroyWrite];
 }
 
 @end

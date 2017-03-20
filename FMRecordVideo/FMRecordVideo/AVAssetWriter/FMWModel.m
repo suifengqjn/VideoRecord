@@ -15,7 +15,7 @@
 #define VIDEO_FOLDER @"videoFolder" //视频录制存放文件夹
 #define IS_IPHONE_4 (fabs((double)[[UIScreen mainScreen]bounds].size.height - (double)480) < DBL_EPSILON)
 
-@interface FMWModel ()<AVCaptureVideoDataOutputSampleBufferDelegate, AVCaptureAudioDataOutputSampleBufferDelegate>
+@interface FMWModel ()<AVCaptureVideoDataOutputSampleBufferDelegate, AVCaptureAudioDataOutputSampleBufferDelegate, AVAssetWriteManagerDelegate>
 
 @property (nonatomic, weak) UIView *superView;
 
@@ -32,12 +32,9 @@
 
 @property (nonatomic, strong, readwrite) NSURL *videoUrl;
 
-@property (nonatomic, strong) NSTimer *timer;
-@property (nonatomic, assign) CGFloat recordTime;
-
 
 @property (nonatomic, assign) FMFlashState flashState;
-
+@property (nonatomic, assign) FMVideoViewType viewType;
 @end
 
 @implementation FMWModel
@@ -47,6 +44,7 @@
     self = [super init];
     if (self) {
         _superView = superView;
+        _viewType = type;
         [self setUpWithType:type];
     }
     return self;
@@ -183,7 +181,8 @@
 - (void)setUpWriter
 {
     self.videoUrl = [[NSURL alloc] initFileURLWithPath:[self createVideoFilePath]];
-    self.writeManager = [[AVAssetWriteManager alloc] initWithURL:self.videoUrl];
+    self.writeManager = [[AVAssetWriteManager alloc] initWithURL:self.videoUrl viewType:_viewType];
+    self.writeManager.delegate = self;
     
 }
 #pragma mark - public method
@@ -261,18 +260,18 @@
 - (void)stopRecord
 {
     
-    
     [self.writeManager stopWrite];
-    [self.timer invalidate];
-    self.timer = nil;
     [self.session stopRunning];
+    self.recordState = FMRecordStateFinish;
+    
 }
 
 - (void)reset
 {
     self.recordState = FMRecordStateInit;
-    _recordTime = 0;
     [self.session startRunning];
+    [self setUpWriter];
+    
 }
 
 
@@ -283,7 +282,6 @@
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(enterBack) name:UIApplicationDidEnterBackgroundNotification object:nil];
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(becomeActive) name:UIApplicationWillEnterForegroundNotification object:nil];
     [self clearFile];
-    _recordTime = 0;
     _recordState = FMRecordStateInit;
 }
 //存放视频的文件夹
@@ -311,17 +309,6 @@
     
 }
 
-- (void)refreshTimeLabel
-{
-    _recordTime += TIMER_INTERVAL;
-    if(self.delegate && [self.delegate respondsToSelector:@selector(updateRecordingProgress:)]) {
-        [self.delegate updateRecordingProgress:_recordTime/MAX_RECORD_TIME];
-    }
-    if (_recordTime >= MAX_RECORD_TIME) {
-        [self stopRecord];
-    }
-}
-
 #pragma mark - 获取摄像头
 -(AVCaptureDevice *)getCameraDeviceWithPosition:(AVCaptureDevicePosition )position{
     NSArray *cameras= [AVCaptureDevice devicesWithMediaType:AVMediaTypeVideo];
@@ -339,6 +326,7 @@
 - (void)captureOutput:(AVCaptureOutput *)captureOutput didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer fromConnection:(AVCaptureConnection *)connection
 {
     @autoreleasepool {
+        
         //视频
         if (connection == [self.videoOutput connectionWithMediaType:AVMediaTypeVideo]) {
             
@@ -381,28 +369,19 @@
 }
 
 
-
-- (void)captureOutput:(AVCaptureFileOutput *)captureOutput didStartRecordingToOutputFileAtURL:(NSURL *)fileURL
-      fromConnections:(NSArray *)connections
+#pragma mark - AVAssetWriteManagerDelegate
+- (void)updateWritingProgress:(CGFloat)progress
 {
-    self.recordState = FMRecordStateRecording;
-    self.timer = [NSTimer scheduledTimerWithTimeInterval:TIMER_INTERVAL target:self selector:@selector(refreshTimeLabel) userInfo:nil repeats:YES];
-}
-
-- (void)captureOutput:(AVCaptureFileOutput *)captureOutput didFinishRecordingToOutputFileAtURL:(NSURL *)outputFileURL fromConnections:(NSArray *)connections error:(NSError *)error
-{
-    
-    if ([XCFileManager isExistsAtPath:[self.videoUrl path]]) {
-        //[self convertVideoToMP4WithURL:self.videoUrl];
-        
-        self.recordState = FMRecordStateFinish;
-        
-        //[self cropPureVideoWithURL:self.videoUrl scaleType:1 finished:nil];
-
+    if (self.delegate && [self.delegate respondsToSelector:@selector(updateRecordingProgress:)]) {
+        [self.delegate updateRecordingProgress:progress];
     }
-    
 }
 
+- (void)finishWriting
+{
+    [self.session stopRunning];
+    self.recordState = FMRecordStateFinish;
+}
 #pragma mark - notification
 - (void)enterBack
 {
@@ -415,9 +394,24 @@
     [self reset];
 }
 
+
+- (void)destroy
+{
+    [self.session stopRunning];
+    self.session = nil;
+    self.videoQueue = nil;
+    self.videoOutput = nil;
+    self.videoInput = nil;
+    self.audioOutput = nil;
+    self.audioInput = nil;
+    self.writeManager = nil;
+    
+    [[NSNotificationCenter defaultCenter] removeObserver:self];
+}
+
 - (void)dealloc
 {
-    [self.timer invalidate];
-    [[NSNotificationCenter defaultCenter] removeObserver:self];
+    [self destroy];
+    
 }
 @end

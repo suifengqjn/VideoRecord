@@ -13,8 +13,7 @@
 #import <AssetsLibrary/AssetsLibrary.h>
 #import "XCFileManager.h"
 
-#define TIMER_INTERVAL 0.05         //计时器刷新频率
-#define VIDEO_FOLDER @"videoFolder" //视频录制存放文件夹
+
 #define IS_IPHONE_4 (fabs((double)[[UIScreen mainScreen]bounds].size.height - (double)480) < DBL_EPSILON)
 
 @interface FMFModel ()<AVCaptureFileOutputRecordingDelegate>
@@ -379,9 +378,9 @@
 {
     _recordTime += TIMER_INTERVAL;
     if(self.delegate && [self.delegate respondsToSelector:@selector(updateRecordingProgress:)]) {
-        [self.delegate updateRecordingProgress:_recordTime/MAX_RECORD_TIME];
+        [self.delegate updateRecordingProgress:_recordTime/RECORD_MAX_TIME];
     }
-    if (_recordTime >= MAX_RECORD_TIME) {
+    if (_recordTime >= RECORD_MAX_TIME) {
         [self stopRecord];
     }
 }

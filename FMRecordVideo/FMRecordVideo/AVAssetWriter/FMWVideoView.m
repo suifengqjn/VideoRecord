@@ -171,8 +171,8 @@
         [self.fmodel startRecord];
     } else if (self.fmodel.recordState == FMRecordStateRecording) {
         [self.fmodel stopRecord];
-    } else if (self.fmodel.recordState == FMRecordStatePause) {
-        
+    } else {
+        [self.fmodel reset];
     }
     
 }
@@ -211,8 +211,6 @@
         [self.progressView resetProgress];
     } else if (recordState == FMRecordStateRecording) {
         [self updateViewWithRecording];
-    } else if (recordState == FMRecordStatePause) {
-        [self updateViewWithStop];
     } else  if (recordState == FMRecordStateFinish) {
         [self updateViewWithStop];
         if (self.delegate && [self.delegate respondsToSelector:@selector(recordFinishWithvideoUrl:)]) {
@@ -224,7 +222,7 @@
 - (void)updateRecordingProgress:(CGFloat)progress
 {
     [self.progressView updateProgressWithValue:progress];
-    self.timelabel.text = [self changeToVideotime:progress * MAX_RECORD_TIME];
+    self.timelabel.text = [self changeToVideotime:progress * RECORD_MAX_TIME];
     [self.timelabel sizeToFit];
 }
 
