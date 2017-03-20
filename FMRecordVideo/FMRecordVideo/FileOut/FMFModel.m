@@ -491,49 +491,63 @@
 - (void)cutVideoWithFinished:(void (^)(void))finished
 {
     
-    
-    AVMutableComposition *composition = [[AVMutableComposition alloc] init];
-    CMTime totalDuration = kCMTimeZero;
+    //1 — 采集
     AVAsset *asset = [AVAsset assetWithURL:self.videoUrl];
-    AVAssetTrack *videoAssetTrack = [[asset tracksWithMediaType:AVMediaTypeVideo] objectAtIndex:0];
+    // 2 创建AVMutableComposition实例. apple developer 里边的解释 【AVMutableComposition is a mutable subclass of AVComposition you use when you want to
+    // create a new composition from existing assets. You can add and remove tracks, and you can add, remove, and scale time ranges.】
+    AVMutableComposition *composition = [[AVMutableComposition alloc] init];
     
-    AVMutableCompositionTrack *audioTrack = [composition addMutableTrackWithMediaType:AVMediaTypeAudio preferredTrackID:kCMPersistentTrackID_Invalid];
-    [audioTrack insertTimeRange:CMTimeRangeMake(kCMTimeZero, videoAssetTrack.timeRange.duration) ofTrack:[[asset tracksWithMediaType:AVMediaTypeAudio] firstObject] atTime:kCMTimeZero error:nil];
+    // 3 视频通道  工程文件中的轨道，有音频轨、视频轨等，里面可以插入各种对应的素材
     AVMutableCompositionTrack *videoTrack = [composition addMutableTrackWithMediaType:AVMediaTypeVideo preferredTrackID:kCMPersistentTrackID_Invalid];
+    AVAssetTrack *videoAssetTrack = [[asset tracksWithMediaType:AVMediaTypeVideo] firstObject];
+    //获取duration的时候，不要用asset.duration，应该用track.timeRange.duration，用前者的时间不准确，会导致黑帧
     [videoTrack insertTimeRange:CMTimeRangeMake(kCMTimeZero, videoAssetTrack.timeRange.duration) ofTrack:videoAssetTrack atTime:kCMTimeZero error:nil];
     
+    // 4. 音频通道
+    AVMutableCompositionTrack *audioTrack = [composition addMutableTrackWithMediaType:AVMediaTypeAudio preferredTrackID:kCMPersistentTrackID_Invalid];
+    AVAssetTrack *audioAssetTrack =[[asset tracksWithMediaType:AVMediaTypeAudio] firstObject];
+    [audioTrack insertTimeRange:CMTimeRangeMake(kCMTimeZero, videoAssetTrack.timeRange.duration) ofTrack:audioAssetTrack atTime:kCMTimeZero error:nil];
+    
+    //5 创建视频组合图层指令AVMutableVideoCompositionLayerInstruction，并设置图层指令在视频的作用时间范围和旋转矩阵变换
+    CMTime totalDuration = kCMTimeZero;
     AVMutableVideoCompositionLayerInstruction *layerInstruction = [AVMutableVideoCompositionLayerInstruction videoCompositionLayerInstructionWithAssetTrack:videoTrack];
     totalDuration = CMTimeAdd(totalDuration, videoAssetTrack.timeRange.duration);
-    
+    CGAffineTransform t1;
+    t1 = CGAffineTransformMakeTranslation(-1*videoAssetTrack.naturalSize.width/2, -1*videoAssetTrack.naturalSize.height/2);
+    [layerInstruction setTransform:t1 atTime:kCMTimeZero];
+    // 6.videoAssetTrack.naturalSize 就是录制的视频的实际宽高
     CGSize renderSize = CGSizeMake(0, 0);
     renderSize.width = MAX(renderSize.width, videoAssetTrack.naturalSize.height);
     renderSize.height = MAX(renderSize.height, videoAssetTrack.naturalSize.width);
     CGFloat renderW = MIN(renderSize.width, renderSize.height);
     CGFloat rate;
     rate = renderW / MIN(videoAssetTrack.naturalSize.width, videoAssetTrack.naturalSize.height);
+
     
+    // 7. 根据录制视频时的方向旋转视频
     CGAffineTransform layerTransform = CGAffineTransformMake(videoAssetTrack.preferredTransform.a, videoAssetTrack.preferredTransform.b, videoAssetTrack.preferredTransform.c, videoAssetTrack.preferredTransform.d, videoAssetTrack.preferredTransform.tx * rate, videoAssetTrack.preferredTransform.ty * rate);
     layerTransform = CGAffineTransformConcat(layerTransform, CGAffineTransformMake(1, 0, 0, 1, 0, -(videoAssetTrack.naturalSize.width - videoAssetTrack.naturalSize.height) / 2.0));
     layerTransform = CGAffineTransformScale(layerTransform, rate, rate);
     [layerInstruction setTransform:layerTransform atTime:kCMTimeZero];
     [layerInstruction setOpacity:0.0 atTime:totalDuration];
     
+    //8. 创建视频组合指令AVMutableVideoCompositionInstruction，并设置指令在视频的作用时间范围和旋转矩阵变换
     AVMutableVideoCompositionInstruction *instruction = [AVMutableVideoCompositionInstruction videoCompositionInstruction];
     instruction.timeRange = CMTimeRangeMake(kCMTimeZero, totalDuration);
     instruction.layerInstructions = @[layerInstruction];
     AVMutableVideoComposition *mainComposition = [AVMutableVideoComposition videoComposition];
     mainComposition.instructions = @[instruction];
     mainComposition.frameDuration = CMTimeMake(1, 30);
-    mainComposition.renderSize = CGSizeMake(renderW, renderW);
     
-    NSString* docFolder = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) lastObject];
-    NSString* outputPath = [docFolder stringByAppendingPathComponent:@"pureVideo.mp4"];
+    mainComposition.renderSize = CGSizeMake(renderW,renderW);
+    
+    NSString* outputPath = [self createVideoFilePath];
     if ([[NSFileManager defaultManager] fileExistsAtPath:outputPath]){
         [[NSFileManager defaultManager] removeItemAtPath:outputPath error:nil];
     }
-
+    
     NSURL *outurl = [[NSURL alloc] initFileURLWithPath:outputPath];
-    // 导出视频
+    // 9.导出视频
     AVAssetExportSession *exporter = [[AVAssetExportSession alloc] initWithAsset:composition presetName:AVAssetExportPresetMediumQuality];
     exporter.videoComposition = mainComposition;
     exporter.outputURL = outurl;
@@ -546,11 +560,10 @@
             [lib writeVideoAtPathToSavedPhotosAlbum:outurl completionBlock:nil];
         });
         
-        
-        
-        
-        
     }];
+    
+    
+
     
 }
 
