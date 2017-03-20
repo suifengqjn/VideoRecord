@@ -47,5 +47,5 @@ typedef NS_ENUM(NSInteger, FMVideoViewType) {
 - (void)startWrite;
 - (void)stopWrite;
 - (void)appendSampleBuffer:(CMSampleBufferRef)sampleBuffer ofMediaType:(NSString *)mediaType;
-
+- (void)destroyWrite;
 @end

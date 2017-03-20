@@ -74,24 +74,17 @@
     return self;
 }
 
-//- (void)setWriteState:(FMRecordState)writeState
-//{
-//    if (_writeState != writeState) {
-//        _writeState = writeState;
-//    }
-//}
-
 //开始写入数据
 - (void)appendSampleBuffer:(CMSampleBufferRef)sampleBuffer ofMediaType:(NSString *)mediaType
 {
     if (sampleBuffer == NULL){
-        NSLog(@"不存在sampleBuffer");
+        NSLog(@"empty sampleBuffer");
         return;
     }
     
     @synchronized(self){
         if (self.writeState < FMRecordStateRecording){
-            NSLog(@"还没准备好记录");
+            NSLog(@"not ready yet");
             return;
         }
     }

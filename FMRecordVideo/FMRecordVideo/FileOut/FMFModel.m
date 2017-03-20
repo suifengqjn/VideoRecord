@@ -56,6 +56,7 @@
     // 录制5秒钟视频 高画质10M,压缩成中画质 0.5M
     // 录制5秒钟视频 中画质0.5M,压缩成中画质 0.5M
     // 录制5秒钟视频 低画质0.1M,压缩成中画质 0.1M
+    // 只有高分辨率的视频才是全屏的，如果想要自定义长宽比，就需要先录制高分辨率，再剪裁，如果录制低分辨率，剪裁的区域不好控制
     if (!_session) {
         _session = [[AVCaptureSession alloc] init];
         if ([_session canSetSessionPreset:AVCaptureSessionPresetHigh]) {//设置分辨率
@@ -97,9 +98,8 @@
 #pragma mark - setup
 - (void)setUpWithType:(FMVideoViewType )type
 {
-    [self setUpInit];
-    
     ///0. 初始化捕捉会话，数据的采集都在会话中处理
+    [self setUpInit];
     
     ///1. 设置视频的输入输出
     [self setUpVideo];
@@ -119,18 +119,18 @@
     /// 6. 将采集的数据写入文件（用户点击按钮即可将采集到的数据写入文件）
     
     /// 7. 增加聚焦功能（可有可无）
-    
+    [self addFocus];
     
 }
 
 - (void)setUpVideo
 {
-    // 2.1 获取视频输入设备(摄像头)
+    // 1.1 获取视频输入设备(摄像头)
     AVCaptureDevice *videoCaptureDevice=[self getCameraDeviceWithPosition:AVCaptureDevicePositionBack];//取得后置摄像头
-    // 2.3 创建视频输入源
+    // 1.2 创建视频输入源
     NSError *error=nil;
     self.videoInput= [[AVCaptureDeviceInput alloc] initWithDevice:videoCaptureDevice error:&error];
-    // 2.5 将视频输入源添加到会话
+    // 1.3 将视频输入源添加到会话
     if ([self.session canAddInput:self.videoInput]) {
         [self.session addInput:self.videoInput];
         
@@ -138,12 +138,12 @@
 }
 - (void)setUpAudio
 {
-    // 2.2 获取音频输入设备
+    // 2.1 获取音频输入设备
     AVCaptureDevice *audioCaptureDevice=[[AVCaptureDevice devicesWithMediaType:AVMediaTypeAudio] firstObject];
     NSError *error=nil;
-    // 2.4 创建音频输入源
+    // 2.2 创建音频输入源
     self.audioInput = [[AVCaptureDeviceInput alloc] initWithDevice:audioCaptureDevice error:&error];
-    // 2.6 将音频输入源添加到会话
+    // 2.3 将音频输入源添加到会话
     if ([self.session canAddInput:self.audioInput]) {
         [self.session addInput:self.audioInput];
     }
@@ -154,7 +154,7 @@
     // 3.1初始化设备输出对象，用于获得输出数据
     self.FileOutput=[[AVCaptureMovieFileOutput alloc]init];
     
-    
+    // 3.2设置输出对象的一些属性
     AVCaptureConnection *captureConnection=[self.FileOutput connectionWithMediaType:AVMediaTypeVideo];
     //设置防抖
     if ([captureConnection isVideoStabilizationSupported ]) {
@@ -163,7 +163,7 @@
     //预览图层和视频方向保持一致
     captureConnection.videoOrientation = [self.previewlayer connection].videoOrientation;
     
-    // 3.2将设备输出添加到会话中
+    // 3.3将设备输出添加到会话中
     if ([_session canAddOutput:_FileOutput]) {
         [_session addOutput:_FileOutput];
     }
@@ -199,6 +199,7 @@
     
 }
 
+//添加视频聚焦
 - (void)addFocus
 {
     [self.superView addSubview:self.focusCursor];
@@ -347,7 +348,7 @@
     [self clearFile];
     _recordTime = 0;
     _recordState = FMRecordStateInit;
-    [self addFocus];
+    
 }
 //存放视频的文件夹
 - (NSString *)videoFolder
@@ -409,15 +410,22 @@
 {
     
     if ([XCFileManager isExistsAtPath:[self.videoUrl path]]) {
-        [self convertVideoToMP4WithURL:self.videoUrl];
+        
         
         self.recordState = FMRecordStateFinish;
+        __weak __typeof(self)weakSelf = self;
         
-        //[self cropPureVideoWithURL:self.videoUrl scaleType:1 finished:nil];
+       // [self cropVideoWithType:0 finished:nil];
         
-        [self cutVideoWithFinished:^{
-            
-        }];
+        [self cutVideoWithFinished:nil];
+//        [];
+//        [self cutVideoWithFinished:^{
+//            
+//            
+//            [weakSelf cropPureVideoWithURL:self.videoUrl scaleType:0 finished:^{
+//                
+//            }];
+//        }];
     }
     
 }
@@ -441,15 +449,10 @@
 }
 
 
-#pragma mark - 视频压缩
-- (void)convertVideoToMP4WithURL:(NSURL *)fileUrl{
+#pragma mark - 导出视频
+- (void)convertVideoWithURL:(NSURL *)fileUrl{
+    
     __block NSURL *outputFileURL = fileUrl;
-    
-    ALAssetsLibrary *lib = [[ALAssetsLibrary alloc] init];
-    [lib writeVideoAtPathToSavedPhotosAlbum:fileUrl completionBlock:nil];
-    NSData *oldData = [NSData dataWithContentsOfURL:fileUrl];
-    
-    NSLog(@"---old--%f", oldData.length/1024/1024.0);
     NSString *path = [self createVideoFilePath];
     AVURLAsset *avAsset = [AVURLAsset URLAssetWithURL:outputFileURL options:nil];
     NSArray *compatiblePresets = [AVAssetExportSession exportPresetsCompatibleWithAsset:avAsset];
@@ -457,7 +460,6 @@
     if ([compatiblePresets containsObject:AVAssetExportPresetMediumQuality])
     {
         AVAssetExportSession *exportSession = [[AVAssetExportSession alloc]initWithAsset:avAsset presetName:AVAssetExportPresetMediumQuality];
-        
         exportSession.outputURL = [[NSURL alloc] initFileURLWithPath:path];
         exportSession.outputFileType = AVFileTypeMPEG4;
         [exportSession exportAsynchronouslyWithCompletionHandler:^{
@@ -479,28 +481,29 @@
 }
 
 - (void)completeWithUrl:(NSURL *)url{
-    NSData *newData = [NSData dataWithContentsOfURL:url];
-    
-    NSLog(@"---new--%f", newData.length/1024/1024.0);
     ALAssetsLibrary *lib = [[ALAssetsLibrary alloc] init];
     [lib writeVideoAtPathToSavedPhotosAlbum:url completionBlock:nil];
 }
 
+
+///完成剪裁
 //test
 - (void)cutVideoWithFinished:(void (^)(void))finished
 {
+    
+    
     AVMutableComposition *composition = [[AVMutableComposition alloc] init];
     CMTime totalDuration = kCMTimeZero;
     AVAsset *asset = [AVAsset assetWithURL:self.videoUrl];
-    AVAssetTrack *videoAssetTrack = [[asset tracksWithMediaType:AVMediaTypeVideo] firstObject];
+    AVAssetTrack *videoAssetTrack = [[asset tracksWithMediaType:AVMediaTypeVideo] objectAtIndex:0];
     
     AVMutableCompositionTrack *audioTrack = [composition addMutableTrackWithMediaType:AVMediaTypeAudio preferredTrackID:kCMPersistentTrackID_Invalid];
-    [audioTrack insertTimeRange:CMTimeRangeMake(kCMTimeZero, asset.duration) ofTrack:[[asset tracksWithMediaType:AVMediaTypeAudio] firstObject] atTime:kCMTimeZero error:nil];
+    [audioTrack insertTimeRange:CMTimeRangeMake(kCMTimeZero, videoAssetTrack.timeRange.duration) ofTrack:[[asset tracksWithMediaType:AVMediaTypeAudio] firstObject] atTime:kCMTimeZero error:nil];
     AVMutableCompositionTrack *videoTrack = [composition addMutableTrackWithMediaType:AVMediaTypeVideo preferredTrackID:kCMPersistentTrackID_Invalid];
-    [videoTrack insertTimeRange:CMTimeRangeMake(kCMTimeZero, asset.duration) ofTrack:videoAssetTrack atTime:kCMTimeZero error:nil];
+    [videoTrack insertTimeRange:CMTimeRangeMake(kCMTimeZero, videoAssetTrack.timeRange.duration) ofTrack:videoAssetTrack atTime:kCMTimeZero error:nil];
     
     AVMutableVideoCompositionLayerInstruction *layerInstruction = [AVMutableVideoCompositionLayerInstruction videoCompositionLayerInstructionWithAssetTrack:videoTrack];
-    totalDuration = CMTimeAdd(totalDuration, asset.duration);
+    totalDuration = CMTimeAdd(totalDuration, videoAssetTrack.timeRange.duration);
     
     CGSize renderSize = CGSizeMake(0, 0);
     renderSize.width = MAX(renderSize.width, videoAssetTrack.naturalSize.height);
@@ -508,6 +511,7 @@
     CGFloat renderW = MIN(renderSize.width, renderSize.height);
     CGFloat rate;
     rate = renderW / MIN(videoAssetTrack.naturalSize.width, videoAssetTrack.naturalSize.height);
+    
     CGAffineTransform layerTransform = CGAffineTransformMake(videoAssetTrack.preferredTransform.a, videoAssetTrack.preferredTransform.b, videoAssetTrack.preferredTransform.c, videoAssetTrack.preferredTransform.d, videoAssetTrack.preferredTransform.tx * rate, videoAssetTrack.preferredTransform.ty * rate);
     layerTransform = CGAffineTransformConcat(layerTransform, CGAffineTransformMake(1, 0, 0, 1, 0, -(videoAssetTrack.naturalSize.width - videoAssetTrack.naturalSize.height) / 2.0));
     layerTransform = CGAffineTransformScale(layerTransform, rate, rate);
@@ -536,27 +540,30 @@
     exporter.outputFileType = AVFileTypeQuickTimeMovie;
     exporter.shouldOptimizeForNetworkUse = YES;
     [exporter exportAsynchronouslyWithCompletionHandler:^{
-        finished();
+        
+        dispatch_async(dispatch_get_main_queue(), ^{
+            ALAssetsLibrary *lib = [[ALAssetsLibrary alloc] init];
+            [lib writeVideoAtPathToSavedPhotosAlbum:outurl completionBlock:nil];
+        });
         
         
         
-        ALAssetsLibrary *lib = [[ALAssetsLibrary alloc] init];
-        [lib writeVideoAtPathToSavedPhotosAlbum:outurl completionBlock:nil];
+        
         
     }];
     
 }
 
 
--(void)cropPureVideoWithURL:(NSURL *)url scaleType:(NSInteger)scaleType finished:(void (^)(void))finished {
+-(void)cropPureVideoWithURL:(NSURL *)url scaleType:(FMVideoViewType)type finished:(void (^)(void))finished {
+    
+    AVAsset *asset = [AVAsset assetWithURL:url];
     NSString* docFolder = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) lastObject];
     NSString* outputPath = [docFolder stringByAppendingPathComponent:@"pureVideo.mp4"];
-    if ([[NSFileManager defaultManager] fileExistsAtPath:outputPath]){
+    if ([[NSFileManager defaultManager] fileExistsAtPath:outputPath])
         [[NSFileManager defaultManager] removeItemAtPath:outputPath error:nil];
-    }
-    AVAsset *asset = [AVAsset assetWithURL:url];
     
-    UIImageOrientation videoOrientation = [self getVideoOrientationFromAsset:asset];
+    UIImageOrientation videoOrientation = UIImageOrientationDown;//[self getVideoOrientationFromAsset:asset];
     // input clip
     AVAssetTrack *clipVideoTrack = [[asset tracksWithMediaType:AVMediaTypeVideo]objectAtIndex:0];
     
@@ -577,17 +584,15 @@
     CGRect cropRect = CGRectZero;
     CGSize naturalSize = CGSizeMake(clipVideoTrack.naturalSize.height, clipVideoTrack.naturalSize.width);
     
-    if (scaleType == 1) {
+    if (type == 0) {
         cropRect = CGRectMake(0, 0, naturalSize.width, naturalSize.width);
-    } else if (scaleType == 2) {
+    } else if (type == 2) {
         cropRect = CGRectMake(0, 0, naturalSize.width, naturalSize.height);
-    } else if (scaleType == 0) {
+    } else {
         CGFloat height = 0;
-        if (IS_IPHONE_4) {
-            height = (kScreenWidth * (4 / 3.0)) * (4 / 3.0);
-        } else {
-            height = naturalSize.height * (3.0 / 4.0);
-        }
+        
+        height = naturalSize.width * 4 / 3;
+  
         
         cropRect = CGRectMake(0, 0, naturalSize.width, height);
     };
@@ -639,34 +644,227 @@
     [exporter exportAsynchronouslyWithCompletionHandler:^(void){
         if (exporter.status == AVAssetExportSessionStatusCompleted) {
            
+            
             ALAssetsLibrary *lib = [[ALAssetsLibrary alloc] init];
             [lib writeVideoAtPathToSavedPhotosAlbum:outputURL completionBlock:nil];
-            NSData *oldData = [NSData dataWithContentsOfURL:outputURL];
-            
-            NSLog(@"---compress--%f", oldData.length/1024/1024.0);
-
             
         } else {
-           
+            
         }
     }];
 }
 
 
-- (UIImageOrientation)getVideoOrientationFromAsset:(AVAsset *)asset
-{
-    AVAssetTrack *videoTrack = [[asset tracksWithMediaType:AVMediaTypeVideo] objectAtIndex:0];
-    CGSize size = [videoTrack naturalSize];
-    CGAffineTransform txf = [videoTrack preferredTransform];
+- (void) loadVideoByPath:(NSString*) v_strVideoPath andSavePath:(NSString*) v_strSavePath {
+    NSLog(@"\nv_strVideoPath = %@ \nv_strSavePath = %@\n ",v_strVideoPath,v_strSavePath);
+    AVAsset *avAsset = [AVAsset assetWithURL:[NSURL fileURLWithPath:v_strVideoPath]];
+    CMTime assetTime = [avAsset duration];
+    Float64 duration = CMTimeGetSeconds(assetTime);
+    NSLog(@"视频时长 %f\n",duration);
     
-    if (size.width == txf.tx && size.height == txf.ty)
-        return UIImageOrientationLeft; //return UIInterfaceOrientationLandscapeLeft;
-    else if (txf.tx == 0 && txf.ty == 0)
-        return UIImageOrientationRight; //return UIInterfaceOrientationLandscapeRight;
-    else if (txf.tx == 0 && txf.ty == size.width)
-        return UIImageOrientationDown; //return UIInterfaceOrientationPortraitUpsideDown;
-    else
-        return UIImageOrientationUp;  //return UIInterfaceOrientationPortrait;
+    AVMutableComposition *avMutableComposition = [AVMutableComposition composition];
+    
+    AVMutableCompositionTrack *avMutableCompositionTrack = [avMutableComposition addMutableTrackWithMediaType:AVMediaTypeVideo preferredTrackID:kCMPersistentTrackID_Invalid];
+    
+    AVAssetTrack *avAssetTrack = [[avAsset tracksWithMediaType:AVMediaTypeVideo] objectAtIndex:0];
+    
+    NSError *error = nil;
+    // 这块是裁剪,rangtime .前面的是开始时间,后面是裁剪多长 (我这裁剪的是从第二秒开始裁剪，裁剪2.55秒时长.)
+    [avMutableCompositionTrack insertTimeRange:CMTimeRangeMake(CMTimeMakeWithSeconds(2.0f, 30), CMTimeMakeWithSeconds(2.55f, 30))
+                                       ofTrack:avAssetTrack
+                                        atTime:kCMTimeZero
+                                         error:&error];
+    
+    AVMutableVideoComposition *avMutableVideoComposition = [AVMutableVideoComposition videoComposition];
+    // 这个视频大小可以由你自己设置。比如源视频640*480.而你这320*480.最后出来的是320*480这么大的，640多出来的部分就没有了。并非是把图片压缩成那么大了。
+    
+    ///获取视频原始大小
+    // input clip
+    AVAssetTrack *clipVideoTrack = [[avAsset tracksWithMediaType:AVMediaTypeVideo]objectAtIndex:0];
+    CGSize naturalSize = CGSizeMake(clipVideoTrack.naturalSize.width, clipVideoTrack.naturalSize.height);
+    
+    
+    avMutableVideoComposition.renderSize = CGSizeMake(320.0f, 480.0f);
+    avMutableVideoComposition.frameDuration = CMTimeMake(1, 30);
+    // 这句话暂时不用理会，我正在看是否能添加logo而已。
+    //[self addDataToVideoByTool:avMutableVideoComposition.animationTool];
+    
+    AVMutableVideoCompositionInstruction *avMutableVideoCompositionInstruction = [AVMutableVideoCompositionInstruction videoCompositionInstruction];
+    
+    [avMutableVideoCompositionInstruction setTimeRange:CMTimeRangeMake(kCMTimeZero, [avMutableComposition duration])];
+    
+    AVMutableVideoCompositionLayerInstruction *avMutableVideoCompositionLayerInstruction = [AVMutableVideoCompositionLayerInstruction videoCompositionLayerInstructionWithAssetTrack:avAssetTrack];
+    [avMutableVideoCompositionLayerInstruction setTransform:avAssetTrack.preferredTransform atTime:kCMTimeZero];
+    
+    avMutableVideoCompositionInstruction.layerInstructions = [NSArray arrayWithObject:avMutableVideoCompositionLayerInstruction];
+    
+    
+    avMutableVideoComposition.instructions = [NSArray arrayWithObject:avMutableVideoCompositionInstruction];
+    
+    
+    NSFileManager *fm = [[NSFileManager alloc] init];
+    if ([fm fileExistsAtPath:v_strSavePath]) {
+        NSLog(@"video is have. then delete that");
+        if ([fm removeItemAtPath:v_strSavePath error:&error]) {
+            NSLog(@"delete is ok");
+        }else {
+            NSLog(@"delete is no error = %@",error.description);
+        }
+    }
+    
+    
+    
+    
+    
+    AVAssetExportSession *exporter = [[AVAssetExportSession alloc] initWithAsset:avMutableComposition presetName:AVAssetExportPresetMediumQuality];
+    exporter.videoComposition = avMutableVideoComposition;
+    exporter.outputURL=[NSURL fileURLWithPath:v_strSavePath];
+    exporter.outputFileType=AVFileTypeMPEG4;
+    
+    [exporter exportAsynchronouslyWithCompletionHandler:^(void){
+        if (exporter.status == AVAssetExportSessionStatusCompleted) {
+            
+            ALAssetsLibrary *lib = [[ALAssetsLibrary alloc] init];
+            [lib writeVideoAtPathToSavedPhotosAlbum:[NSURL fileURLWithPath:v_strSavePath] completionBlock:nil];
+            NSData *oldData = [NSData dataWithContentsOfURL:[NSURL fileURLWithPath:v_strSavePath]];
+            
+            NSLog(@"---compress--%f", oldData.length/1024/1024.0);
+            
+            
+        } else {
+            
+        }
+    }];
+
+//    
+//    
+//    AVAssetExportSession *avAssetExportSession = [[AVAssetExportSession alloc] initWithAsset:avMutableComposition presetName:AVAssetExportPreset640x480];
+//    [avAssetExportSession setVideoComposition:avMutableVideoComposition];
+//    [avAssetExportSession setOutputURL:[NSURL fileURLWithPath:v_strSavePath]];
+//    [avAssetExportSession setOutputFileType:AVFileTypeQuickTimeMovie];
+//    [avAssetExportSession setShouldOptimizeForNetworkUse:YES];
+//    [avAssetExportSession exportAsynchronouslyWithCompletionHandler:^(void){
+//        switch (avAssetExportSession.status) {
+//            case AVAssetExportSessionStatusFailed:
+//                NSLog(@"exporting failed %@",[avAssetExportSession error]);
+//                break;
+//            case AVAssetExportSessionStatusCompleted:
+//                
+//                ALAssetsLibrary *lib = [[ALAssetsLibrary alloc] init];
+//                [lib writeVideoAtPathToSavedPhotosAlbum:avAssetExportSession.outputURL completionBlock:nil];
+//                NSLog(@"exporting completed");
+//                // 想做什么事情在这个做
+//                
+//                break;
+//            case AVAssetExportSessionStatusCancelled:
+//                NSLog(@"export cancelled");
+//                break;
+//             default:
+//                break;
+//        }
+//    }];
+//    if (avAssetExportSession.status != AVAssetExportSessionStatusCompleted){
+//        NSLog(@"Retry export");
+//    }
+
 }
+
+
+- (void)cropVideoWithType:(FMVideoViewType)type finished:(void (^)(void))finished
+{
+    //1 — 采集
+    AVAsset *asset = [AVAsset assetWithURL:self.videoUrl];
+    // 2 创建AVMutableComposition实例. apple developer 里边的解释 【AVMutableComposition is a mutable subclass of AVComposition you use when you want to
+    // create a new composition from existing assets. You can add and remove tracks, and you can add, remove, and scale time ranges.】
+    AVMutableComposition *mixComposition = [[AVMutableComposition alloc] init];
+    
+    // 3 - 视频通道  工程文件中的轨道，有音频轨、视频轨等，里面可以插入各种对应的素材
+    AVMutableCompositionTrack *videoTrack = [mixComposition addMutableTrackWithMediaType:AVMediaTypeVideo
+                                                                        preferredTrackID:kCMPersistentTrackID_Invalid];
+
+    NSError *error = nil;
+    // 这块是裁剪,rangtime .前面的是开始时间,后面是裁剪多长 (我这裁剪的是从第二秒开始裁剪，裁剪2.55秒时长.)
+    [videoTrack insertTimeRange:CMTimeRangeMake(CMTimeMakeWithSeconds(2.0f, 30), CMTimeMakeWithSeconds(2.55f, 30))
+                        ofTrack:[[asset tracksWithMediaType:AVMediaTypeVideo] objectAtIndex:0]
+                         atTime:kCMTimeZero
+                          error:&error];
+    
+    // 3.1 AVMutableVideoCompositionInstruction 视频轨道中的一个视频，可以缩放、旋转等
+    AVMutableVideoCompositionInstruction *mainInstruction = [AVMutableVideoCompositionInstruction videoCompositionInstruction];
+    AVAssetTrack *videoAssetTrack = [[asset tracksWithMediaType:AVMediaTypeVideo] objectAtIndex:0];
+    
+    //获取视频时长
+    //获取duration的时候，不要用asset.duration，应该用track.timeRange.duration，用前者的时间不准确，会导致黑帧。同时AVURLAssetPreferPreciseDurationAndTimingKey设为YES
+    mainInstruction.timeRange = CMTimeRangeMake(kCMTimeZero, videoAssetTrack.timeRange.duration);
+
+    // 3.2 AVMutableVideoCompositionLayerInstruction 一个视频轨道，包含了这个轨道上的所有视频素材
+    AVMutableVideoCompositionLayerInstruction *videolayerInstruction = [AVMutableVideoCompositionLayerInstruction videoCompositionLayerInstructionWithAssetTrack:videoTrack];
+
+    
+    
+    UIImageOrientation videoAssetOrientation_  = UIImageOrientationUp;
+    BOOL isVideoAssetPortrait_  = NO;
+    CGAffineTransform videoTransform = videoAssetTrack.preferredTransform;
+    if (videoTransform.a == 0 && videoTransform.b == 1.0 && videoTransform.c == -1.0 && videoTransform.d == 0) {
+        videoAssetOrientation_ = UIImageOrientationRight;
+        isVideoAssetPortrait_ = YES;
+    }
+    if (videoTransform.a == 0 && videoTransform.b == -1.0 && videoTransform.c == 1.0 && videoTransform.d == 0) {
+        videoAssetOrientation_ =  UIImageOrientationLeft;
+        isVideoAssetPortrait_ = YES;
+    }
+    if (videoTransform.a == 1.0 && videoTransform.b == 0 && videoTransform.c == 0 && videoTransform.d == 1.0) {
+        videoAssetOrientation_ =  UIImageOrientationUp;
+    }
+    if (videoTransform.a == -1.0 && videoTransform.b == 0 && videoTransform.c == 0 && videoTransform.d == -1.0) {
+        videoAssetOrientation_ = UIImageOrientationDown;
+    }
+    [videolayerInstruction setTransform:videoAssetTrack.preferredTransform atTime:kCMTimeZero];
+    [videolayerInstruction setOpacity:0.0 atTime: videoAssetTrack.timeRange.duration];
+    
+    // 3.3 - Add instructions
+    mainInstruction.layerInstructions = [NSArray arrayWithObjects:videolayerInstruction,nil];
+    // AVMutableVideoComposition：管理所有视频轨道，可以决定最终视频的尺寸，裁剪需要在这里进行
+    AVMutableVideoComposition *mainCompositionInst = [AVMutableVideoComposition videoComposition];
+    
+    CGSize naturalSize;
+    if(isVideoAssetPortrait_){
+        naturalSize = CGSizeMake(videoAssetTrack.naturalSize.height, videoAssetTrack.naturalSize.width);
+    } else {
+        naturalSize = videoAssetTrack.naturalSize;
+    }
+    
+    float renderWidth, renderHeight;
+    renderWidth = naturalSize.width;
+    renderHeight = naturalSize.height;
+    
+    
+    mainCompositionInst.renderSize = CGSizeMake(renderWidth, renderWidth);
+    mainCompositionInst.instructions = [NSArray arrayWithObject:mainInstruction];
+    mainCompositionInst.frameDuration = CMTimeMake(1, 30);
+    // 4 - Get path
+    NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+    NSString *documentsDirectory = [paths objectAtIndex:0];
+    NSString *myPathDocs =  [documentsDirectory stringByAppendingPathComponent:
+                             [NSString stringWithFormat:@"FinalVideo-%d.mov",arc4random() % 1000]];
+    self.videoUrl = [NSURL fileURLWithPath:myPathDocs];
+    
+    // 5 - Create exporter
+    AVAssetExportSession *exporter = [[AVAssetExportSession alloc] initWithAsset:mixComposition
+                                                                      presetName:AVAssetExportPresetHighestQuality];
+    exporter.outputURL=self.videoUrl;
+    exporter.outputFileType = AVFileTypeQuickTimeMovie;
+    exporter.shouldOptimizeForNetworkUse = YES;
+    exporter.videoComposition = mainCompositionInst;
+    [exporter exportAsynchronouslyWithCompletionHandler:^{
+        dispatch_async(dispatch_get_main_queue(), ^{
+            ALAssetsLibrary *lib = [[ALAssetsLibrary alloc] init];
+            [lib writeVideoAtPathToSavedPhotosAlbum:self.videoUrl completionBlock:nil];
+        });
+    }];
+}
+
+
+
 
 @end

@@ -31,7 +31,7 @@
 
 -(instancetype)initWithFMVideoViewType:(FMVideoViewType)type
 {
-   
+
     self = [super initWithFrame:[UIScreen mainScreen].bounds];
     if (self) {
         [self BuildUIWithType:type];
@@ -47,7 +47,6 @@
     self.fmodel.delegate = self;
     
     self.topView = [[UIView alloc] init];
-    self.topView.backgroundColor = [UIColor colorWithRGB:0x000000 alpha:0.5];
     self.topView.frame = CGRectMake(0, 0, kScreenHeight, 44);
     [self addSubview:self.topView];
     

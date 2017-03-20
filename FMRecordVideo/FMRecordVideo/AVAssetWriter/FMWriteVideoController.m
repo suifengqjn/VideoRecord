@@ -25,9 +25,10 @@
     
     self.navigationController.navigationBar.hidden = YES;
     
-    _videoView  =[[FMWVideoView alloc] initWithFMVideoViewType:TypeFullScreen];
+    _videoView  =[[FMWVideoView alloc] initWithFMVideoViewType:Type4X3];
     _videoView.delegate = self;
     [self.view addSubview:_videoView];
+    self.view.backgroundColor = [UIColor blackColor];
     
     
     

@@ -95,10 +95,8 @@
 #pragma mark - setup
 - (void)setUpWithType:(FMVideoViewType )type
 {
-    [self setUpInit];
-    
     ///0. 初始化捕捉会话，数据的采集都在会话中处理
-    
+    [self setUpInit];
     ///1. 设置视频的输入输出
     [self setUpVideo];
     
@@ -223,7 +221,7 @@
     if(_flashState == FMFlashClose){
         if ([self.videoInput.device hasTorch]) {
             [self.videoInput.device lockForConfiguration:nil];
-            [self.videoInput.device setTorchMode:AVCaptureTorchModeOn];  // use AVCaptureTorchModeOff to turn off
+            [self.videoInput.device setTorchMode:AVCaptureTorchModeOn];
             [self.videoInput.device unlockForConfiguration];
             _flashState = FMFlashOpen;
         }
@@ -386,7 +384,9 @@
 - (void)enterBack
 {
     self.videoUrl = nil;
-    [self stopRecord];
+    [self.session stopRunning];
+    [self.writeManager destroyWrite];
+   
 }
 
 - (void)becomeActive
@@ -404,7 +404,7 @@
     self.videoInput = nil;
     self.audioOutput = nil;
     self.audioInput = nil;
-    self.writeManager = nil;
+    [self.writeManager destroyWrite];
     
     [[NSNotificationCenter defaultCenter] removeObserver:self];
 }
