@@ -5,6 +5,9 @@
 //  Created by qianjn on 2017/3/15.
 //  Copyright © 2017年 SF. All rights reserved.
 //
+//  Github:https://github.com/suifengqjn
+//  blog:http://gcblog.github.io/
+//  简书:http://www.jianshu.com/u/527ecf8c8753
 
 #import "AVAssetWriteManager.h"
 #import "XCFileManager.h"
@@ -18,7 +21,6 @@
 @property (nonatomic, strong) NSURL           *videoUrl;
 
 @property (nonatomic, strong)AVAssetWriter *assetWriter;
-@property (nonatomic, strong)AVAssetWriterInputPixelBufferAdaptor *assetWriterPixelBufferInput;
 
 @property (nonatomic, strong)AVAssetWriterInput *assetWriterVideoInput;
 @property (nonatomic, strong)AVAssetWriterInput *assetWriterAudioInput;
@@ -216,6 +218,7 @@
                                        AVVideoCompressionPropertiesKey : compressionProperties };
 
     _assetWriterVideoInput = [AVAssetWriterInput assetWriterInputWithMediaType:AVMediaTypeVideo outputSettings:self.videoCompressionSettings];
+    //expectsMediaDataInRealTime 必须设为yes，需要从capture session 实时获取数据
     _assetWriterVideoInput.expectsMediaDataInRealTime = YES;
     _assetWriterVideoInput.transform = CGAffineTransformMakeRotation(M_PI / 2.0);
     
@@ -229,15 +232,6 @@
     
     _assetWriterAudioInput = [AVAssetWriterInput assetWriterInputWithMediaType:AVMediaTypeAudio outputSettings:self.audioCompressionSettings];
     _assetWriterAudioInput.expectsMediaDataInRealTime = YES;
-    
-    
-    NSDictionary *SPBADictionary = @{
-                                     (__bridge NSString *)kCVPixelBufferPixelFormatTypeKey : @(kCVPixelFormatType_32BGRA),
-                                     (__bridge NSString *)kCVPixelBufferWidthKey : @(self.outputSize.width),
-                                     (__bridge NSString *)kCVPixelBufferHeightKey  : @(self.outputSize.height),
-                                     (__bridge NSString *)kCVPixelFormatOpenGLESCompatibility : ((__bridge NSNumber *)kCFBooleanTrue)
-                                     };
-    _assetWriterPixelBufferInput = [AVAssetWriterInputPixelBufferAdaptor assetWriterInputPixelBufferAdaptorWithAssetWriterInput:_assetWriterVideoInput sourcePixelBufferAttributes:SPBADictionary];
     
     
     if ([_assetWriter canAddInput:_assetWriterVideoInput]) {

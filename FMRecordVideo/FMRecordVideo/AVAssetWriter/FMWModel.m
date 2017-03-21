@@ -5,15 +5,16 @@
 //  Created by qianjn on 2017/3/15.
 //  Copyright © 2017年 SF. All rights reserved.
 //
+//  Github:https://github.com/suifengqjn
+//  blog:http://gcblog.github.io/
+//  简书:http://www.jianshu.com/u/527ecf8c8753
 
 #import "FMWModel.h"
 #import <AVFoundation/AVFoundation.h>
 #import <AssetsLibrary/AssetsLibrary.h>
 #import "XCFileManager.h"
 #import "AVAssetWriteManager.h"
-#define TIMER_INTERVAL 0.05         //计时器刷新频率
-#define VIDEO_FOLDER @"videoFolder" //视频录制存放文件夹
-#define IS_IPHONE_4 (fabs((double)[[UIScreen mainScreen]bounds].size.height - (double)480) < DBL_EPSILON)
+
 
 @interface FMWModel ()<AVCaptureVideoDataOutputSampleBufferDelegate, AVCaptureAudioDataOutputSampleBufferDelegate, AVAssetWriteManagerDelegate>
 
@@ -95,12 +96,12 @@
 #pragma mark - setup
 - (void)setUpWithType:(FMVideoViewType )type
 {
-    ///0. 初始化捕捉会话，数据的采集都在会话中处理
+    ///1. 初始化捕捉会话，数据的采集都在会话中处理
     [self setUpInit];
-    ///1. 设置视频的输入输出
+    ///2. 设置视频的输入输出
     [self setUpVideo];
     
-    ///2. 设置音频的输入输出
+    ///3. 设置音频的输入输出
     [self setUpAudio];
     
     ///4. 视频的预览层
@@ -118,10 +119,10 @@
 {
     // 2.1 获取视频输入设备(摄像头)
     AVCaptureDevice *videoCaptureDevice=[self getCameraDeviceWithPosition:AVCaptureDevicePositionBack];//取得后置摄像头
-    // 2.3 创建视频输入源
+    // 2.2 创建视频输入源
     NSError *error=nil;
     self.videoInput= [[AVCaptureDeviceInput alloc] initWithDevice:videoCaptureDevice error:&error];
-    // 2.5 将视频输入源添加到会话
+    // 2.3 将视频输入源添加到会话
     if ([self.session canAddInput:self.videoInput]) {
         [self.session addInput:self.videoInput];
     }

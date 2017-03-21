@@ -24,7 +24,7 @@
     [super viewDidLoad];
     self.navigationController.navigationBar.hidden = YES;
     self.view.backgroundColor = [UIColor blackColor];
-    _videoView = [[FMFVideoView alloc] initWithFMVideoViewType:Type4X3];
+    _videoView = [[FMFVideoView alloc] initWithFMVideoViewType:TypeFullScreen];
     _videoView.delegate = self;
     [self.view addSubview:_videoView];
     

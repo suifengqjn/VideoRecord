@@ -5,11 +5,13 @@
 //  Created by qianjn on 2017/3/15.
 //  Copyright © 2017年 SF. All rights reserved.
 //
+//  Github:https://github.com/suifengqjn
+//  blog:http://gcblog.github.io/
+//  简书:http://www.jianshu.com/u/527ecf8c8753
+
 
 #import <Foundation/Foundation.h>
 #import <AVFoundation/AVFoundation.h>
-
-
 
 //录制状态，（这里把视频录制与写入合并成一个状态）
 typedef NS_ENUM(NSInteger, FMRecordState) {
